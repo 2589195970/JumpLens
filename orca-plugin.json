@@ -1,0 +1,77 @@
+{
+  "manifestVersion": 2,
+  "id": "jumplens",
+  "name": "JumpLens · 代码导航",
+  "version": "0.3.2",
+  "description": "Java、Vue 与 JS/TS 的语法高亮和语义跳转，支持候选选择、源码预览与导航历史，配色跟随 Orca 明暗主题。",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "dist/worker.mjs",
+  "capabilities": [
+    {
+      "kind": "settings:own"
+    },
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "workspace:write"
+    }
+  ],
+  "contributes": {
+    "customEditors": [
+      {
+        "id": "code-navigation",
+        "title": "JumpLens",
+        "extensions": [
+          ".java",
+          ".vue",
+          ".ts",
+          ".tsx",
+          ".mts",
+          ".cts",
+          ".js",
+          ".jsx",
+          ".mjs",
+          ".cjs"
+        ],
+        "entry": "dist/editor.html",
+        "priority": "default",
+        "frame": "isolated"
+      }
+    ],
+    "settings": [
+      {
+        "key": "javaHome",
+        "title": "语言服务 JDK 目录",
+        "description": "Java 25 或更高版本。留空时自动准备独立运行环境。",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "key": "projectJavaHome",
+        "title": "项目 JDK 目录",
+        "description": "用于分析项目的 JDK。留空时在 macOS 上优先识别已安装的 Java 8。",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "key": "languageServerHome",
+        "title": "JDT LS 目录",
+        "description": "留空时自动准备 Eclipse JDT LS 1.63.0。",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "author": {
+    "name": "2589195970",
+    "url": "https://github.com/2589195970"
+  },
+  "repository": "https://github.com/2589195970/JumpLens",
+  "homepage": "https://github.com/2589195970/JumpLens",
+  "license": "MIT"
+}

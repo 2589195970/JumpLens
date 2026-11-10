@@ -1,0 +1,55 @@
+// Based on CodeMirror's MIT-licensed Vue grammar (see THIRD-PARTY-NOTICES).
+@top Content { (Text | Interpolation | Entity)+ }
+
+@skip { space } {
+  @top Attribute {
+    (VueAttributeName (":" Argument)? ("." ModifierName)* |
+      (":" | "@" | "#" | ".") Argument ("." ModifierName)* |
+      SlotScopeName) (Is ScriptAttributeValue)? |
+    AttributeName (Is AttributeValue)?
+  }
+  Argument { ArgumentName | "[" DynamicArgument "]" }
+}
+
+AttributeValue[isolate] {
+  '"' (attrContentDouble | attrEntityDouble)* endAttributeDouble |
+  "'" (attrContentSingle | attrEntitySingle)* endAttributeSingle
+}
+ScriptAttributeValue[isolate] {
+  '"' scriptAttrContentDouble? endScriptAttrDouble |
+  "'" scriptAttrContentSingle? endScriptAttrSingle
+}
+Interpolation[isolate] { interpolationStart InterpolationContent? interpolationEnd }
+
+@local tokens { interpolationEnd[@name="}}"] { "}}" } @else InterpolationContent }
+@local tokens {
+  interpolationStart { "{{" }
+  Entity { "&" (![; ]+ ";")? }
+  @else Text
+}
+@local tokens { endScriptAttrSingle { "'" } @else scriptAttrContentSingle[@name=AttributeScript] }
+@local tokens { endScriptAttrDouble { '"' } @else scriptAttrContentDouble[@name=AttributeScript] }
+@local tokens {
+  endAttributeSingle { "'" }
+  attrEntitySingle[@name=Entity] { "&" (![; ]+ ";")? }
+  @else attrContentSingle
+}
+@local tokens {
+  endAttributeDouble { '"' }
+  attrEntityDouble[@name=Entity] { "&" (![; ]+ ";")? }
+  @else attrContentDouble
+}
+@tokens {
+  AttributeName { (":" | "-" | @asciiLetter | @digit | "_" | $[\u00C0-\u{EFFFF}])+ }
+  VueAttributeName { "v-" (@asciiLetter | "-" | @digit)+ }
+  SlotScopeName { "slot-scope" | "scope" }
+  @precedence { VueAttributeName SlotScopeName AttributeName }
+  @precedence { ":" AttributeName }
+  ArgumentName { (@asciiLetter | @digit | "_" | "-" | "$" | $[\u00C0-\u{EFFFF}])+ (":" (@asciiLetter | @digit | "_" | "-" | "$" | $[\u00C0-\u{EFFFF}])+)* }
+  ModifierName { (@asciiLetter | @digit | "_" | "-")+ }
+  DynamicArgument { ![\] \t\r\n]+ }
+  space { (" " | "\t" | "\r" | "\n")+ }
+  Is { "=" }
+  "{{" "}}" "@" ":" "#" "." "[" "]"
+}
+@detectDelim

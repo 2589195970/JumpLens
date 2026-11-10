@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, mkdir, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { WebLanguageServer } from '../src/web-language-server';
+
+const root = await mkdtemp(path.join(tmpdir(), 'orca-web-navigation-'));
+const server = new WebLanguageServer(root, console.log, console.error);
+const uri = (name: string) => pathToFileURL(path.join(root, name)).href;
+const position = (text: string, needle: string, last = true) => {
+  const offset = last ? text.lastIndexOf(needle) : text.indexOf(needle);
+  assert(offset >= 0, needle);
+  const lines = text.slice(0, offset).split('\n');
+  return { line: lines.length - 1, character: lines.at(-1)!.length + 1 };
+};
+try {
+  await mkdir(path.join(root, 'src'));
+  await symlink(path.resolve('node_modules'), path.join(root, 'node_modules'), 'dir');
+  await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ compilerOptions: { target: 'ES2020', module: 'ESNext', moduleResolution: 'Bundler', strict: true, allowJs: true, baseUrl: '.', paths: { '@/*': ['src/*'] } }, include: ['src/**/*'] }));
+  const service = 'export interface User { id: number; name: string }\nexport function load(id: number): User { return { id, name: "用户😀" }; }\n';
+  const app = 'import { load } from "@/service";\nconst user = load(1);\nconsole.log(user.name);\n';
+  const vue = '<script setup lang="ts">\nimport { load } from "@/service";\nconst user = load(1);\n</script>\n<template><div>{{ user.name }}</div></template>\n';
+  await writeFile(path.join(root, 'src/service.ts'), service);
+  await writeFile(path.join(root, 'src/app.ts'), app);
+  await writeFile(path.join(root, 'src/App.vue'), vue);
+  const child = '<script setup lang="ts">\ndefineProps<{ title: string }>();\n</script>\n<template><span>{{ title }}</span></template>\n';
+  const parent = '<script setup lang="ts">\nimport ChildCard from "./ChildCard.vue";\n</script>\n<template><ChildCard title="hello" /></template>\n';
+  await writeFile(path.join(root, 'src/ChildCard.vue'), child);
+  await writeFile(path.join(root, 'src/Parent.vue'), parent);
+  const target = await server.navigate(uri('src/app.ts'), app, position(app, 'load(1)'), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(target[0]?.uri, uri('src/service.ts'), 'TypeScript alias import resolves the actual source');
+  const fromVue = await server.navigate(uri('src/App.vue'), vue, position(vue, 'load(1)'), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(fromVue[0]?.uri, uri('src/service.ts'), 'Vue script setup resolves imported TypeScript functions');
+  const template = await server.navigate(uri('src/App.vue'), vue, position(vue, 'user.name'), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(template[0]?.uri, uri('src/App.vue'), 'Vue template expressions resolve back to script setup');
+  const component = await server.navigate(uri('src/Parent.vue'), parent, position(parent, 'ChildCard'), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(component[0]?.uri, uri('src/ChildCard.vue'), 'Vue template component resolves to its source file');
+  const legacy = '<template><button @click="toggleClick">{{ title }}</button></template>\n<script>\nexport default { data() { return { title: "Hello" } }, methods: { toggleClick() {} } }\n</script>';
+  await writeFile(path.join(root, 'src/Legacy.vue'), legacy);
+  const legacyTarget = await server.navigate(uri('src/Legacy.vue'), legacy, position(legacy, 'toggleClick', false), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(legacyTarget[0]?.uri, uri('src/Legacy.vue'), 'Options API template methods resolve to the current component');
+  assert.equal(legacyTarget[0]?.range.start.line, 2);
+  const type = await server.navigate(uri('src/app.ts'), app, position(app, 'user.name'), 'typeDefinition', AbortSignal.timeout(30_000));
+  assert.equal(type[0]?.uri, uri('src/service.ts'), 'inferred types resolve to an interface');
+  const references = await server.navigate(uri('src/service.ts'), service, position(service, 'load(', false), 'references', AbortSignal.timeout(30_000));
+  assert(references.some((target) => target.uri === uri('src/app.ts')), 'references include TypeScript callers');
+  assert(references.some((target) => target.uri === uri('src/App.vue')), 'references include Vue callers');
+  const unsaved = app.replace('load(1)', 'load(2)');
+  const unsavedTarget = await server.navigate(uri('src/app.ts'), unsaved, position(unsaved, 'load(2)'), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(unsavedTarget[0]?.uri, uri('src/service.ts'), 'unsaved TypeScript changes stay synchronized');
+  const javascript = 'import { load } from "./service";\nexport const result = load(3);\n';
+  await writeFile(path.join(root, 'src/example.js'), javascript);
+  const jsTarget = await server.navigate(uri('src/example.js'), javascript, position(javascript, 'load(3)'), 'definition', AbortSignal.timeout(30_000));
+  assert.equal(jsTarget[0]?.uri, uri('src/service.ts'), 'JavaScript resolves TypeScript exports');
+  console.log('PASS: JS/TS imports, aliases, inferred types, Vue script/template/components, cross-language references and unsaved buffers');
+} finally { server.dispose(); await rm(root, { recursive: true, force: true }); }

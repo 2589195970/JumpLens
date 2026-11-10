@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JumpLens</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./picker.css">
+</head>
+<body>
+  <nav class="toolbar" aria-label="代码导航操作">
+    <div class="toolbar-group">
+      <button id="back" class="icon-button" data-icon="back" aria-label="返回上次跳转位置" title="返回（⌘[ / Ctrl+Alt+←）" disabled></button>
+      <button id="forward" class="icon-button" data-icon="forward" aria-label="前往下次跳转位置" title="前进（⌘] / Ctrl+Alt+→）" disabled></button>
+    </div>
+    <span class="separator" aria-hidden="true"></span>
+    <button id="definition" data-icon="definition" title="跳转定义（Cmd/Ctrl+B 或 F12）" disabled>定义</button>
+    <button id="implementation" data-icon="implementation" title="跳转实现（Cmd/Ctrl+Alt+B）" disabled>实现</button>
+    <button id="references" data-icon="references" title="查找引用（Shift+F12）" disabled>引用</button>
+    <details id="more-actions" class="more-actions">
+      <summary class="icon-button" aria-label="更多导航操作" title="更多操作"><span data-icon="more"></span></summary>
+      <div class="action-menu">
+        <button id="type-definition" data-icon="type" disabled><span>跳转类型</span><kbd>⌘⇧B</kbd></button>
+        <button id="quick-definition" data-icon="code" disabled><span>预览定义</span><kbd>⌥Space</kbd></button>
+        <div class="menu-divider"></div>
+        <button id="reconnect" data-icon="refresh"><span>重新连接语言服务</span></button>
+      </div>
+    </details>
+    <button id="find-file" class="file-search" data-icon="search" title="按名称或路径查找文件（Cmd+Shift+O / Ctrl+Shift+N）" disabled><span>查找文件</span><kbd id="file-shortcut">⌘⇧O</kbd></button>
+  </nav>
+  <main id="editor" class="editor" aria-label="代码编辑区"></main>
+  <footer id="status" class="status" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="status-text">正在连接 JumpLens…</span><span id="path" class="path"></span><span id="language-name" class="language-name">Java</span></footer>
+  <section id="virtual" class="virtual" role="dialog" aria-label="只读源码" aria-modal="true">
+    <header><span data-icon="file"></span><strong id="virtual-title">源码预览</strong><span class="readonly-label">只读</span><button id="close-virtual" class="icon-button" data-icon="close" aria-label="关闭源码预览" title="关闭（Esc）"></button></header>
+    <div id="virtual-editor" class="editor"></div>
+  </section>
+  <script type="module" src="./editor.js"></script>
+</body>
+</html>

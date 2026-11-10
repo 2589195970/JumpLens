@@ -1,0 +1,3 @@
+CodeMirror and Lezer: MIT license, https://github.com/codemirror
+vscode-jsonrpc: MIT license, https://github.com/microsoft/vscode-languageserver-node
+Eclipse JDT LS and Eclipse Temurin are downloaded separately from their official distribution services.

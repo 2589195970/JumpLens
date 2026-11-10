@@ -1,0 +1,54 @@
+{
+  "name": "orca-jumplens",
+  "version": "0.3.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p .",
+    "test": "tsx --test src/*.test.ts editor/*.spec.ts",
+    "test:integration": "tsx scripts/integration.ts",
+    "check": "npm run build && orca plugin check . --json",
+    "setup": "tsx scripts/setup.ts",
+    "package": "npm run build && node scripts/package.mjs",
+    "test:integration:web": "tsx scripts/web-integration.ts"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.0",
+    "@codemirror/lang-css": "6.3.1",
+    "@codemirror/lang-html": "6.4.11",
+    "@codemirror/lang-java": "^6.0.2",
+    "@codemirror/lang-javascript": "6.2.4",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/lang-sass": "6.0.2",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/search": "^6.5.11",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "@lezer/common": "1.5.5",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/lr": "1.4.12",
+    "@vue/language-server": "2.2.12",
+    "codemirror": "^6.0.2",
+    "typescript": "5.9.3",
+    "vscode-jsonrpc": "^8.2.1"
+  },
+  "devDependencies": {
+    "@lezer/generator": "1.8.1",
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.0",
+    "vue": "3.5.45"
+  },
+  "description": "Semantic code navigation and theme-aware highlighting for Java, Vue and JavaScript/TypeScript in Orca.",
+  "license": "MIT",
+  "author": "2589195970",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/2589195970/JumpLens.git"
+  },
+  "homepage": "https://github.com/2589195970/JumpLens",
+  "bugs": {
+    "url": "https://github.com/2589195970/JumpLens/issues"
+  }
+}

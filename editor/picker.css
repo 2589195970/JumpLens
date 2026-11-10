@@ -1,0 +1,25 @@
+.java-picker-overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-start;justify-content:center;padding:clamp(16px,7vh,64px) 20px 20px;background:#0003}
+.java-picker{display:flex;flex-direction:column;width:min(1040px,100%);height:min(640px,100%);overflow:hidden;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-bg);box-shadow:0 16px 56px #0005,0 2px 8px #0002}
+.java-picker-header{display:flex;align-items:center;gap:10px;flex:none;height:48px;padding:0 12px 0 14px;color:var(--ui-muted)}
+.java-picker-search{flex:1;width:0;min-width:0;height:34px;padding:0;border:0;outline:0;background:transparent;color:var(--ui-text);font-size:15px}
+.java-picker-search::placeholder{color:var(--ui-muted);font-size:14px}
+.java-picker-header:focus-within{box-shadow:inset 0 -2px color-mix(in srgb,var(--ui-accent) 60%,transparent)}
+.java-picker-mode{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:400}
+.java-picker-count{flex:none;padding:1px 6px;border-radius:8px;background:var(--ui-hover);font-size:11px;font-variant-numeric:tabular-nums}
+.java-picker-close{flex:none;width:26px;height:26px}.java-picker-close .java-icon{width:14px;height:14px}
+.java-picker-progress{position:relative;flex:none;height:1px;overflow:hidden;background:var(--ui-border)}
+.java-picker-progress.busy::after{content:"";position:absolute;inset:0 auto 0 0;width:30%;background:var(--ui-accent);animation:java-search-progress .9s linear infinite}
+@keyframes java-search-progress{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+.java-picker-body{display:grid;grid-template-columns:44% 56%;flex:1;min-height:0}
+.java-picker-list{overflow:auto;padding:4px 0}.java-picker-row{padding:5px 12px;cursor:pointer}.java-picker-row:hover{background:var(--ui-hover)}.java-picker-row.selected{background:var(--ui-selected)}
+.java-picker-row-top{display:flex;align-items:baseline;gap:10px;min-width:0}.java-picker-name{flex:none;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600}.java-picker-name b{color:var(--ui-accent);font-weight:700}
+.java-picker-context{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left;white-space:nowrap;color:var(--ui-muted);font-size:12px}
+.java-picker-detail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;color:var(--ui-muted);font:11px/17px "SF Mono",Menlo,Consolas,monospace}
+.java-picker-group{position:sticky;top:-4px;padding:6px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--ui-bg);color:var(--ui-muted);font-size:11px}
+.java-picker-preview{display:flex;flex-direction:column;min-width:0;overflow:hidden;border-left:1px solid var(--ui-border);background:var(--ui-code)}
+.java-picker-preview-header{display:flex;align-items:center;gap:8px;flex:none;height:29px;padding:0 12px;border-bottom:1px solid var(--ui-border)}
+.java-picker-preview-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left;white-space:nowrap;color:var(--ui-muted);font-size:12px}
+.java-picker-code{flex:1;min-height:0}.java-picker-code .cm-scroller{font-size:12px;line-height:18px}.java-picker-code .cm-content{padding:6px 0}.java-picker-code .cm-gutters{color:var(--ui-faint);border:0;background:transparent}.java-picker-code .cm-activeLine,.java-picker-code .cm-activeLineGutter{background:transparent}.java-picker-code .java-preview-target{background:var(--ui-target)}.java-picker-code .cm-focused{outline:1px solid var(--ui-accent);outline-offset:-1px}
+.java-picker-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;height:28px;padding:0 12px;border-top:1px solid var(--ui-border);color:var(--ui-muted);font-size:11px;user-select:none}.java-picker-keys{display:flex;gap:12px;white-space:nowrap}.java-picker-keys kbd{margin-right:4px;color:var(--ui-text)}.java-picker-footer-hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.java-picker-empty{margin:0;padding:18px 14px;color:var(--ui-muted);font-size:12px}
+@media(max-width:680px){.java-picker-overlay{padding:12px}.java-picker-body{grid-template-columns:100%;grid-template-rows:48% 52%}.java-picker-preview{border-left:0;border-top:1px solid var(--ui-border)}.java-picker-mode,.java-picker-footer-hint{display:none}}
+@media(prefers-reduced-motion:reduce){.java-picker-progress.busy::after{width:100%;animation:none}}

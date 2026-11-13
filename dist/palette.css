@@ -1,0 +1,17 @@
+/* Generated from src/palette.ts; shared by source, previews and commit reading. */
+:root,:root.light,:root.dark{--java-keyword:var(--syntax-keyword);--java-string:var(--syntax-string);--java-number:var(--syntax-number);--java-type:var(--syntax-type);--java-method:var(--syntax-method);--java-field:var(--syntax-field);--java-parameter:var(--syntax-parameter);--java-variable:var(--syntax-variable);--java-constant:var(--syntax-constant);--java-annotation:var(--syntax-annotation);--java-comment:var(--syntax-comment);--ui-code:var(--syntax-background);--ui-text:var(--syntax-foreground)}
+.cm-editor .tok-propertyName{color:var(--syntax-field)}
+.cm-editor .tok-parameter{color:var(--syntax-parameter)}
+.cm-editor .symbol-keyword,.cm-editor .symbol-keyword *{color:var(--syntax-keyword)}
+.cm-editor .symbol-string,.cm-editor .symbol-string *{color:var(--syntax-string)}
+.cm-editor .symbol-number,.cm-editor .symbol-number *{color:var(--syntax-number)}
+.cm-editor .symbol-type,.cm-editor .symbol-type *{color:var(--syntax-type)}
+.cm-editor .symbol-method,.cm-editor .symbol-method *{color:var(--syntax-method)}
+.cm-editor .symbol-field,.cm-editor .symbol-field *{color:var(--syntax-field)}
+.cm-editor .symbol-parameter,.cm-editor .symbol-parameter *{color:var(--syntax-parameter)}
+.cm-editor .symbol-variable,.cm-editor .symbol-variable *{color:var(--syntax-variable)}
+.cm-editor .symbol-constant,.cm-editor .symbol-constant *{color:var(--syntax-constant)}
+.cm-editor .symbol-annotation,.cm-editor .symbol-annotation *{color:var(--syntax-annotation)}
+.cm-editor .symbol-comment,.cm-editor .symbol-comment *{color:var(--syntax-comment)}
+.cm-editor .symbol-static{font-style:italic}.cm-editor .symbol-deprecated{text-decoration:line-through}
+#syntax-palette{height:28px;max-width:140px;border:1px solid var(--ui-border);border-radius:5px;background:var(--ui-bg);color:var(--ui-text);font:inherit;font-size:12px;padding:0 6px}

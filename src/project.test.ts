@@ -16,6 +16,7 @@ test('separate front/back repositories and duplicate Java identities are resolve
     assert.deepEqual(await matchDocument(root, text), [file]);
     assert.equal(await projectRoot(file, root), path.join(root, 'backend'));
     assert.deepEqual(await matchDocument(root, text.replace('String name', 'String draft')), [file], 'unsaved changes preserve file identity');
+    assert.deepEqual(await matchDocument(root, text.replace('String name', 'String historical'), true), [], 'read-only historical content must not bind to a different current version');
     const duplicate = path.join(root, 'another/src/main/java/demo/User.java');
     await writeFile(duplicate, text);
     assert.deepEqual(new Set(await matchDocument(root, text)), new Set([file, duplicate]), 'the caller must choose between identical documents');

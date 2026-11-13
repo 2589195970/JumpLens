@@ -16,12 +16,15 @@ export { languageForPath } from '../src/languages';
 export const javaNavigationLanguage = javaLanguage.configure({ props: [styleTags({
   'ClassDeclaration/Definition InterfaceDeclaration/Definition EnumDeclaration/Definition RecordDeclaration/Definition AnnotationTypeDeclaration/Definition': tags.definition(tags.className),
   'MethodDeclaration/Definition ConstructorDeclaration/Definition AnnotationTypeElementDeclaration/Definition': tags.definition(tags.function(tags.variableName)),
-  'MarkerAnnotation/Identifier Annotation/Identifier': tags.annotation
+  'MarkerAnnotation/Identifier Annotation/Identifier': tags.annotation,
+  'FormalParameter/Definition SpreadParameter/Definition': tags.special(tags.variableName),
+  'FieldDeclaration/VariableDeclarator/Definition': tags.propertyName
 })] });
 
 export const memberHighlighter = tagHighlighter([
   { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], class: 'tok-method' },
   { tag: [tags.constant(tags.variableName), tags.constant(tags.propertyName)], class: 'tok-constant' },
+  { tag: tags.special(tags.variableName), class: 'tok-parameter' },
   { tag: tags.tagName, class: 'tok-tagName' },
   { tag: tags.attributeName, class: 'tok-attributeName' }
 ]);
@@ -40,7 +43,7 @@ export function codeEditor(language: CodeLanguage) {
   const syntax = language === 'java' ? new LanguageSupport(javaNavigationLanguage)
     : language === 'vue' ? vueCode
     : language === 'scss' || language === 'sass' ? sass({ indented: language === 'sass' })
-    : language === 'json' ? json() : language === 'css' ? css() : language === 'html' ? html()
+    : language === 'text' ? [] : language === 'json' ? json() : language === 'css' ? css() : language === 'html' ? html()
     : javascript({ typescript: language === 'typescript' || language === 'tsx', jsx: language === 'jsx' || language === 'tsx' });
   return [basicSetup, syntax, indentUnit.of(language === 'java' ? '    ' : '  '), keymap.of([indentWithTab]), ...javaSyntax];
 }

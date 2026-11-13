@@ -12,6 +12,7 @@ import { NavigationHistory } from './history';
 import { searchTargets, sourcePreview, uniqueTargets } from './candidates';
 import { describeTarget, describeVirtualTarget } from './target-source';
 import { errorMessage, type DocumentContext, type LocationSnapshot, type NavigationKind, type Range, type Settings, type Target, type Workspace } from './types';
+import { registerReview } from './review-worker';
 
 type Session = { context: DocumentContext; text: string; lastUsed: number };
 type ServerEntry = { server: NavigationServer; lastUsed: number };
@@ -36,13 +37,27 @@ export default function activate(orca: OrcaWorkerApi): void {
   const attachVersions = new Map<string, number>();
   const sourceChoices = new Map<string, { workspace: Workspace; candidates: string[] }>();
   let runtime: Promise<Runtime> | undefined;
+  const progressUpdates = new Map<string, string>();
+  let progressTimer: ReturnType<typeof setTimeout> | undefined;
+  function flushProgress(): void {
+    progressTimer = undefined;
+    for (const [panel, message] of [...progressUpdates].slice(0, 3)) {
+      progressUpdates.delete(panel);
+      orca.panels.post('progress', { message }, { panel });
+    }
+    if (progressUpdates.size) { progressTimer = setTimeout(flushProgress, 250); progressTimer.unref(); }
+  }
+  function postProgress(panel: string, message: string): void {
+    progressUpdates.set(panel, message);
+    if (!progressTimer) { progressTimer = setTimeout(flushProgress, 250); progressTimer.unref(); }
+  }
 
   const serverKey = (context: DocumentContext) => `${languageForPath(context.path) === 'java' ? 'java' : 'web'}:${context.root}`;
   async function serverFor(session: Session): Promise<NavigationServer> {
     const root = session.context.root;
     const key = serverKey(session.context);
     const serverProgress = (message: string) => {
-      for (const [panel, current] of sessions) if (serverKey(current.context) === key) orca.panels.post('progress', { message }, { panel });
+      for (const [panel, current] of sessions) if (serverKey(current.context) === key) postProgress(panel, message);
     };
     const old = servers.get(key);
     if (old?.server.healthy) { old.lastUsed = Date.now(); return old.server; }
@@ -110,12 +125,12 @@ export default function activate(orca: OrcaWorkerApi): void {
     attachVersions.set(caller.panel.id, attachVersion);
     orca.panels.post('progress', { message: '正在识别当前文件…' }, { panel: caller.panel.id });
     const workspace = await activeWorkspace();
-    const candidates = await matchDocument(workspace.root, text);
+    const candidates = await matchDocument(workspace.root, text, data.readOnly === true);
     if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error('文件已切换，已取消过期的文件识别');
     sourceChoices.set(caller.panel.id, { workspace, candidates });
     const chosen = typeof data.path === 'string' ? data.path : candidates.length === 1 ? candidates[0] : undefined;
     if (!chosen) {
-      if (!candidates.length) throw new Error('当前工作区未找到对应源码文件，请保存文件后重新连接');
+      if (!candidates.length) throw new Error(data.readOnly === true ? '此只读源码与工作区版本不同，请从 JumpLens 提交阅读打开历史版本' : '当前工作区未找到对应源码文件，请保存文件后重新连接');
       return { candidates: candidates.map((file) => ({ path: file, label: path.relative(workspace.root, file) })) };
     }
     if (!candidates.includes(chosen)) throw new Error('文件匹配已变化，请重新选择');
@@ -188,6 +203,18 @@ export default function activate(orca: OrcaWorkerApi): void {
     await (await serverFor(session)).sync(session.context.uri, session.text);
     return { ok: true };
   });
+
+  orca.panels.handle('semantic', async (input, caller) => {
+    const session = sessionFor(caller);
+    const text = source(object(input).text);
+    session.text = text;
+    const server = await serverFor(session);
+    const tokens = await server.semanticTokens?.(session.context.uri, text, caller.signal) ?? [];
+    if (sessions.get(caller.panel.id) !== session || session.text !== text) return [];
+    return tokens;
+  });
+
+  const disposeReview = registerReview(orca, (context, text) => serverFor({ context, text, lastUsed: Date.now() }));
 
   orca.panels.handle('navigate', async (input, caller) => {
     const data = object(input);
@@ -279,6 +306,7 @@ export default function activate(orca: OrcaWorkerApi): void {
   orca.panels.handle('detach', async (_input, caller) => {
     const session = sessions.get(caller.panel.id);
     sessions.delete(caller.panel.id);
+    progressUpdates.delete(caller.panel.id);
     permitted.delete(caller.panel.id);
     attachVersions.delete(caller.panel.id);
     sourceChoices.delete(caller.panel.id);
@@ -291,7 +319,7 @@ export default function activate(orca: OrcaWorkerApi): void {
     for (const [root, entry] of servers) if (entry.lastUsed < cutoff) { entry.server.dispose(); servers.delete(root); }
   }, 60_000);
   timer.unref();
-  cleanup = () => { clearInterval(timer); for (const { server } of servers.values()) server.dispose(); servers.clear(); sessions.clear(); };
+  cleanup = () => { clearInterval(timer); clearTimeout(progressTimer); progressUpdates.clear(); disposeReview(); for (const { server } of servers.values()) server.dispose(); servers.clear(); sessions.clear(); };
 }
 
 export function deactivate(): void { cleanup?.(); cleanup = undefined; }

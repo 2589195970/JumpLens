@@ -52,7 +52,7 @@ export class WebLanguageServer implements NavigationServer {
     try {
       await this.request('initialize', {
         processId: process.pid,
-        clientInfo: { name: 'JumpLens', version: '0.3.2' },
+        clientInfo: { name: 'JumpLens', version: '0.4.0' },
         rootUri: pathToFileURL(this.root).href,
         workspaceFolders: [{ uri: pathToFileURL(this.root).href, name: path.basename(this.root) }],
         capabilities: {

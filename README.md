@@ -6,6 +6,22 @@ Semantic navigation, source previews, and theme-aware highlighting for Java, Vue
 
 在 Orca 的 Java、Vue、JavaScript 和 TypeScript 文件页中编辑代码并使用语义导航。编辑器提供语法配色、行号、折叠、括号补全、Tab 缩进、搜索、替换、撤销和重做。Java 使用 Eclipse JDT LS，Vue 与 JS/TS 使用独立的 Vue / TypeScript 语言服务。
 
+## Git 提交阅读
+
+在标签栏的「＋」菜单选择「JumpLens 提交阅读」。选择当前工作区中的 Git 仓库，输入 commit 哈希或引用，点击「查看提交」。文件列表只包含这次提交相对于第一父提交的修改；左侧是父提交，右侧是本次提交。根提交左侧为空，新增、删除和重命名保留各自的左右路径。
+
+阅读页两侧源码只读，支持上一处／下一处变更和折叠未修改区域。Java 类、方法、字段、参数、局部变量、常量与注解分色；语言服务就绪后叠加语义着色。Cmd/Ctrl+B、F12 或 Cmd/Ctrl+点击预览同版本定义，Esc 关闭。多个定义通过预览顶部的候选选择器切换。
+
+历史版本按仓库和完整 commit 准备独立源码缓存，位于 `~/.cache/orca-java-navigation/revisions`。缓存包含 Java／前端源码及工程配置，忽略符号链接与构建产物，每个版本最多 20,000 个文件、64 MiB。历史分析和预览读取对应提交，工作区源码保持独立。JDK 与语言服务依赖源码通过只读预览提供。
+
+`.jumplens-review` 文件保存工作区地址、仓库、完整 commit 和当前文件，重新打开后恢复同一版本。它保存阅读位置，源码内容由 Git 对象提供。二进制文件和超过阅读大小限制的文件显示提示。
+
+## 代码配色
+
+源码页与提交阅读页右上角可选择 **One Dark** 或 **IDEA Dark**；主编辑器、候选预览与依赖预览共享同一调色板。静态成员使用斜体，过期符号使用删除线。语义分析在后台进行，编辑后丢弃过期结果，语法颜色持续可用。
+
+原生 Git 差异在「设置 → 外观 → 深色编辑器主题」选择 **JumpLens One Dark** 或 **JumpLens IDEA Dark**。插件的 Java TextMate 语法为原生源码与差异视图区分类、方法、注解等类别；完整 JDT 语义着色和同版本定义预览由 JumpLens 编辑器与提交阅读页提供。
+
 ## 使用
 
 打开工作区中的 `.java`、`.vue`、`.ts`、`.tsx`、`.js` 或 `.jsx` 文件，选择文件页的「JumpLens」视图。模块扩展名 `.mjs`、`.cjs`、`.mts`、`.cts` 同样支持。
@@ -41,7 +57,7 @@ Vue 模板中的指令、带连字符的绑定属性、事件修饰符、动态�
 
 Vue/TS 语言服务随插件提供，读取工程现有的 `tsconfig.json` / `jsconfig.json` 和 Vue 类型依赖。组件与框架类型解析需要工程已安装相应依赖。Vue 2 模板局部作用域由语言服务解析；组件内的补充解析会避开循环、插槽和箭头函数的局部绑定。
 
-界面背景、正文、边框与次要文字使用 Orca 注入的主题变量。Orca 更新 `<html>` 的 `light` / `dark` 类时，关键字、字符串、数字、注释、类型、方法、标签和属性的语法配色同步切换。主编辑器、候选预览和依赖预览使用同一套规则，切换时保留文档、光标和查询状态。宿主提供的主题接口包含界面色与明暗模式，语法颜色使用插件对应明暗模式的调色板。
+界面边框、工具栏与次要文字使用 Orca 注入的主题变量，代码区域使用所选 One Dark／IDEA Dark 调色板。符号类别及颜色集中在 `src/semantic.ts` 和 `src/palette.ts`，构建时生成原生主题与 CodeMirror 样式，主编辑器、候选预览和提交阅读使用同一套分类。主题切换保留文档、光标与查询状态。
 
 ## 环境与设置
 
@@ -97,10 +113,12 @@ npm run check
 
 ```sh
 npm run package
-orca plugin inspect ./releases/jumplens-0.3.2 --json
-orca plugin install ./releases/jumplens-0.3.2 --json
+orca plugin inspect ./releases/jumplens-0.4.0 --json
+orca plugin install ./releases/jumplens-0.4.0 --json
 ```
 
 ## 许可证
 
 项目使用 [MIT License](LICENSE)。运行文件中的第三方组件保留各自许可证；Vue 语法来源说明见 [VUE-SYNTAX-LICENSE.txt](editor/VUE-SYNTAX-LICENSE.txt)。
+
+Java TextMate 语法来自 Red Hat `vscode-java` 提交 `28e59628a8ea73b35cf96ad018d929f8a10eabe4` 的 `language-support/java/java.tmLanguage.json`，该文件标注源自 VS Code／Atom Java grammar，采用 MIT 许可证，原始声明和许可证保存在 `syntaxes/`。

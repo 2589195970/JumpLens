@@ -28,6 +28,15 @@ export async function activeWorkspace(): Promise<Workspace> {
   return { root: await realpath(row.path), selector: row.address.worktree };
 }
 
+export async function workspaceBySelector(selector: string): Promise<Workspace> {
+  if (!selector || selector.length > 2000 || selector.includes('\0')) throw new Error('工作区标识无效');
+  const { stdout } = await run(CLI, ['worktree', 'show', '--worktree', selector, '--json'], { timeout: 12_000, maxBuffer: 1024 * 1024 });
+  const response = JSON.parse(stdout);
+  const row = response.result?.worktree;
+  if (!response.ok || !row || row.hostId && row.hostId !== 'local' || row.address?.environment !== 'local') throw new Error('提交阅读的本机工作区不可用');
+  return { root: await realpath(row.path), selector: row.address.worktree };
+}
+
 export function inside(root: string, file: string): boolean {
   const relative = path.relative(root, file);
   return relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
@@ -52,7 +61,7 @@ export async function sourceFiles(root: string, extensions = sourceExtensions): 
   return stdout.split(/\r?\n/).filter(Boolean);
 }
 
-export async function matchDocument(root: string, text: string): Promise<string[]> {
+export async function matchDocument(root: string, text: string, exactOnly = false): Promise<string[]> {
   const identity = sourceIdentity(text);
   const java = /^\s*(?:package\s+[\w.]+\s*;|import\s+(?:static\s+)?[\w.*]+\s*;|public\s+(?:(?:abstract|final|sealed)\s+)*(?:class|interface|enum|record)\s)/m.test(text);
   const files = await sourceFiles(root);
@@ -81,7 +90,7 @@ export async function matchDocument(root: string, text: string): Promise<string[
     }
   }
   const best = Math.max(...similar.map((item) => item.score));
-  return [...new Set(exact.length ? exact : semantic.length ? semantic : similar.filter((item) => item.score >= best - .02).map((item) => item.path))].sort();
+  return [...new Set(exactOnly ? exact : exact.length ? exact : semantic.length ? semantic : similar.filter((item) => item.score >= best - .02).map((item) => item.path))].sort();
 }
 
 export async function projectRoot(file: string, workspaceRoot: string): Promise<string> {

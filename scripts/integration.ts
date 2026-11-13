@@ -20,7 +20,8 @@ const files: Record<string, string> = {
   'Use.java': 'package demo;\npublic class Use {\n  int run(Thing thing, Counter counter) {\n    String note = "中文😀"; return thing.pick(1) + counter.count() + note.length();\n  }\n}\n',
   'a/UserService.java': 'package demo.a;\npublic class UserService { public int load() { return 1; } }\n',
   'b/UserService.java': 'package demo.b;\npublic class UserService { public int load() { return 2; } }\n',
-  'Choose.java': 'package demo;\nimport demo.b.UserService;\npublic class Choose { int run(UserService service) { return service.load(); } }\n'
+  'Choose.java': 'package demo;\nimport demo.b.UserService;\npublic class Choose { int run(UserService service) { return service.load(); } }\n',
+  'Colors.java': 'package demo;\npublic class Colors {\n  private int field;\n  private static final int LIMIT = 7;\n  int compute(int parameter) { int local = parameter; return field + local + LIMIT; }\n}\n'
 };
 for (const [name, content] of Object.entries(files)) { await mkdir(path.dirname(path.join(directory, name)), { recursive: true }); await writeFile(path.join(directory, name), content); }
 const server = new LanguageServer(root, runtime, console.log, (message) => { if (/error|exception/i.test(message)) console.error(message); });
@@ -63,6 +64,12 @@ try {
   const type = await server.navigate(uri, files['Use.java'], position(files['Use.java'], 'counter.count()'), 'typeDefinition', signal);
   assert(type.some((target) => target.uri.endsWith('/demo/Counter.java')));
   console.log('PASS: variable type navigation');
+  const colorText = files['Colors.java'];
+  const tokens = await server.semanticTokens(pathToFileURL(path.join(directory, 'Colors.java')).href, colorText, signal);
+  for (const [name, kind] of [['Colors', 'type'], ['compute', 'method'], ['field', 'field'], ['parameter', 'parameter'], ['local', 'variable'], ['LIMIT', 'constant']]) {
+    assert(tokens.some((token) => colorText.slice(token.from, token.to) === name && token.kind === kind), `${name} must receive semantic ${kind} coloring`);
+  }
+  console.log('PASS: real JDT LS semantic tokens distinguish classes, methods, fields, parameters, locals and constants');
 } finally {
   server.dispose();
   await rm(root, { recursive: true, force: true });

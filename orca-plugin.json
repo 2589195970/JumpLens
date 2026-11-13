@@ -2,8 +2,8 @@
   "manifestVersion": 2,
   "id": "jumplens",
   "name": "JumpLens · 代码导航",
-  "version": "0.3.2",
-  "description": "Java、Vue 与 JS/TS 的语法高亮和语义跳转，支持候选选择、源码预览与导航历史，配色跟随 Orca 明暗主题。",
+  "version": "0.4.0",
+  "description": "Java、Vue 与 JS/TS 代码导航、Java 语义着色和同版本 Git 提交阅读，提供 One Dark 与 IDEA 配色。",
   "engines": {
     "orca": ">=1.4.248"
   },
@@ -41,6 +41,16 @@
         "entry": "dist/editor.html",
         "priority": "default",
         "frame": "isolated"
+      },
+      {
+        "id": "commit-review",
+        "title": "JumpLens 提交阅读",
+        "extensions": [
+          ".jumplens-review"
+        ],
+        "entry": "dist/review.html",
+        "priority": "default",
+        "frame": "isolated"
       }
     ],
     "settings": [
@@ -64,6 +74,53 @@
         "description": "留空时自动准备 Eclipse JDT LS 1.63.0。",
         "type": "string",
         "default": ""
+      },
+      {
+        "key": "syntaxPalette",
+        "title": "代码配色",
+        "description": "源码、候选预览与提交阅读使用的符号配色；原生 Git 差异在外观设置中选择同名 JumpLens 编辑器主题。",
+        "type": "string",
+        "default": "onedark",
+        "enum": [
+          "onedark",
+          "idea"
+        ],
+        "enumLabels": [
+          "One Dark",
+          "IDEA Dark"
+        ]
+      }
+    ],
+    "newFiles": [
+      {
+        "id": "commit-review",
+        "title": "JumpLens 提交阅读",
+        "extension": ".jumplens-review",
+        "template": "dist/review-template.json"
+      }
+    ],
+    "syntaxes": [
+      {
+        "id": "java",
+        "title": "JumpLens Java",
+        "scopeName": "source.java",
+        "path": "syntaxes/java.tmLanguage.json",
+        "configuration": "syntaxes/java-configuration.json",
+        "extensions": [
+          ".java"
+        ]
+      }
+    ],
+    "themes": [
+      {
+        "id": "onedark",
+        "title": "JumpLens One Dark",
+        "path": "themes/onedark.json"
+      },
+      {
+        "id": "idea",
+        "title": "JumpLens IDEA Dark",
+        "path": "themes/idea.json"
       }
     ]
   },

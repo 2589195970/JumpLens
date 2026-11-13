@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JumpLens 提交阅读</title>
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./palette.css"><link rel="stylesheet" href="./review.css">
+</head>
+<body class="review-page">
+  <header class="review-toolbar">
+    <strong>提交阅读</strong>
+    <select id="repository" aria-label="Git 仓库"></select>
+    <form id="revision-form"><input id="revision" value="HEAD" list="commits" aria-label="提交哈希或引用" placeholder="提交哈希或引用"><datalist id="commits"></datalist><button type="submit">查看提交</button></form>
+    <select id="syntax-palette" aria-label="代码配色"></select>
+  </header>
+  <div class="review-summary"><span id="summary">正在读取工作区…</span><span class="readonly-label">只读</span></div>
+  <main class="review-layout">
+    <aside class="review-files" aria-label="本次提交的文件"><div id="file-count">文件</div><div id="files"></div></aside>
+    <section class="review-content" aria-label="提交差异">
+      <div class="revision-labels"><span id="before-label">父提交</span><span id="after-label">本次提交</span></div>
+      <div id="merge" class="review-merge"></div>
+      <div id="empty" class="review-empty">选择提交和文件，即可阅读两侧源码</div>
+    </section>
+  </main>
+  <footer class="review-status"><span id="status" role="status" aria-live="polite">语法颜色即时显示；Java 符号分析在后台完成</span><button id="previous" disabled>上一处</button><span id="chunks"></span><button id="next" disabled>下一处</button></footer>
+  <section id="preview" class="review-preview" role="dialog" aria-label="同版本定义预览" aria-modal="true" hidden>
+    <header><strong id="preview-title">定义预览</strong><select id="preview-target" aria-label="定义候选"></select><button id="close-preview">关闭（Esc）</button></header>
+    <div id="preview-editor" class="editor"></div>
+  </section>
+  <script type="module" src="./review.js"></script>
+</body>
+</html>

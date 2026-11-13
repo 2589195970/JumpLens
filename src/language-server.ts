@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { CancellationTokenSource, createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from 'vscode-jsonrpc/node.js';
 import { CACHE, type Runtime } from './runtime';
 import { normalizeLocations, type NavigationKind, type Position, type Progress, type Target } from './types';
+import { decodeSemanticTokens, tokenTypes, tokenModifiers, type TokenLegend, type SemanticSpan } from './semantic';
 
 export class LanguageServer {
   private connection?: MessageConnection;
@@ -17,6 +18,7 @@ export class LanguageServer {
   private resolveInitialized?: () => void;
   private stderr = '';
   private stopped = false;
+  private semanticLegend?: TokenLegend;
 
   constructor(readonly root: string, private runtime: Runtime, private progress: Progress, private log: Progress = () => {}) {}
 
@@ -79,19 +81,21 @@ export class LanguageServer {
     const timeout = new AbortController();
     const timer = setTimeout(() => timeout.abort(), 120_000);
     try {
-      await this.request('initialize', {
+      const initialized = await this.request<{ capabilities?: { semanticTokensProvider?: { legend?: TokenLegend } } }>('initialize', {
         processId: process.pid,
-        clientInfo: { name: 'JumpLens', version: '0.3.2' },
+        clientInfo: { name: 'JumpLens', version: '0.4.0' },
         rootUri: pathToFileURL(this.root).href,
         workspaceFolders: [{ uri: pathToFileURL(this.root).href, name: path.basename(this.root) }],
         capabilities: {
           workspace: { configuration: true, workspaceFolders: true },
-          textDocument: { synchronization: { didSave: true }, definition: { linkSupport: true }, implementation: { linkSupport: true }, references: {} },
+          textDocument: { synchronization: { didSave: true }, definition: { linkSupport: true }, implementation: { linkSupport: true }, references: {},
+            semanticTokens: { requests: { full: true, range: false }, tokenTypes, tokenModifiers, formats: ['relative'], multilineTokenSupport: false, overlappingTokenSupport: false } },
           window: { workDoneProgress: true },
           general: { positionEncodings: ['utf-16'] }
         },
         initializationOptions: { settings: { java: this.javaSettings() }, extendedClientCapabilities: { classFileContentsSupport: true, progressReportProvider: true } }
       }, timeout.signal);
+      this.semanticLegend = initialized.capabilities?.semanticTokensProvider?.legend;
       await connection.sendNotification('initialized', {});
       await connection.sendNotification('workspace/didChangeConfiguration', { settings: { java: this.javaSettings() } });
     } catch (error) {
@@ -161,6 +165,22 @@ export class LanguageServer {
       if (signal?.aborted) throw error;
       return this.request<string>('java/classFileContents', { uri }, signal);
     }
+  }
+
+  async semanticTokens(uri: string, text: string, signal?: AbortSignal): Promise<SemanticSpan[]> {
+    await this.sync(uri, text);
+    if (!this.semanticLegend) return [];
+    if (this.initialization) await new Promise<void>((resolve, reject) => {
+      const finish = (error?: Error) => { clearTimeout(timer); signal?.removeEventListener('abort', abort); error ? reject(error) : resolve(); };
+      const abort = () => finish(new Error('请求已取消'));
+      const timer = setTimeout(() => finish(), 30_000);
+      timer.unref();
+      if (signal?.aborted) { abort(); return; }
+      signal?.addEventListener('abort', abort, { once: true });
+      void this.initialization!.then(() => finish());
+    });
+    const result = await this.request<{ data: number[] } | null>('textDocument/semanticTokens/full', { textDocument: { uri } }, signal);
+    return result?.data ? decodeSemanticTokens(text, result.data, this.semanticLegend).slice(0, 20_000) : [];
   }
 
   async close(uri: string): Promise<void> {

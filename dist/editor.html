@@ -6,6 +6,7 @@
   <title>JumpLens</title>
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./picker.css">
+  <link rel="stylesheet" href="./palette.css">
 </head>
 <body>
   <nav class="toolbar" aria-label="代码导航操作">
@@ -27,6 +28,7 @@
       </div>
     </details>
     <button id="find-file" class="file-search" data-icon="search" title="按名称或路径查找文件（Cmd+Shift+O / Ctrl+Shift+N）" disabled><span>查找文件</span><kbd id="file-shortcut">⌘⇧O</kbd></button>
+    <select id="syntax-palette" aria-label="代码配色" title="代码配色"></select>
   </nav>
   <main id="editor" class="editor" aria-label="代码编辑区"></main>
   <footer id="status" class="status" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="status-text">正在连接 JumpLens…</span><span id="path" class="path"></span><span id="language-name" class="language-name">Java</span></footer>

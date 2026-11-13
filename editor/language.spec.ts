@@ -24,6 +24,15 @@ function tokensFor(text: string) {
   return { tokens, tree };
 }
 
+test('Java syntax fallback separates class names, fields, parameters, locals and called methods', () => {
+  const text = 'class Demo { String field; int run(int parameter) { int local = parameter; return field.length() + local; } }';
+  const tokens: { text: string; classes: string }[] = [];
+  highlightTree(javaNavigationLanguage.parser.parse(text), [classHighlighter, memberHighlighter], (from, to, classes) => tokens.push({ text: text.slice(from, to), classes }));
+  for (const [name, kind] of [['Demo', 'tok-className'], ['field', 'tok-propertyName'], ['parameter', 'tok-parameter'], ['local', 'tok-variableName'], ['run', 'tok-method'], ['length', 'tok-method']]) {
+    assert(tokens.some((token) => token.text === name && token.classes.includes(kind)), `${name} must have ${kind} fallback coloring`);
+  }
+});
+
 test('Vue SCSS styles retain nested selectors, variables, units and line comments after a long script', () => {
   const text = `<template><div :style="containerStyle" /></template>
 <script>\nexport default { methods: {\n${'  run() { return 1; },\n'.repeat(600)}} };\n</script>

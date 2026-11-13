@@ -3043,7 +3043,7 @@ var require_main = __commonJS({
     exports.createMessageConnection = exports.createServerSocketTransport = exports.createClientSocketTransport = exports.createServerPipeTransport = exports.createClientPipeTransport = exports.generateRandomPipeName = exports.StreamMessageWriter = exports.StreamMessageReader = exports.SocketMessageWriter = exports.SocketMessageReader = exports.PortMessageWriter = exports.PortMessageReader = exports.IPCMessageWriter = exports.IPCMessageReader = void 0;
     var ril_1 = require_ril();
     ril_1.default.install();
-    var path7 = __require("path");
+    var path9 = __require("path");
     var os = __require("os");
     var crypto_1 = __require("crypto");
     var net_1 = __require("net");
@@ -3179,9 +3179,9 @@ var require_main = __commonJS({
       }
       let result;
       if (XDG_RUNTIME_DIR) {
-        result = path7.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
+        result = path9.join(XDG_RUNTIME_DIR, `vscode-ipc-${randomSuffix}.sock`);
       } else {
-        result = path7.join(os.tmpdir(), `vscode-${randomSuffix}.sock`);
+        result = path9.join(os.tmpdir(), `vscode-${randomSuffix}.sock`);
       }
       const limit = safeIpcPathLengths.get(process.platform);
       if (limit !== void 0 && result.length > limit) {
@@ -3288,9 +3288,9 @@ var require_node = __commonJS({
 });
 
 // src/worker.ts
-import { readFile as readFile3, realpath as realpath2 } from "node:fs/promises";
-import path6 from "node:path";
-import { fileURLToPath as fileURLToPath3, pathToFileURL as pathToFileURL4 } from "node:url";
+import { readFile as readFile5, realpath as realpath3 } from "node:fs/promises";
+import path8 from "node:path";
+import { fileURLToPath as fileURLToPath4, pathToFileURL as pathToFileURL4 } from "node:url";
 
 // src/project.ts
 import { existsSync } from "node:fs";
@@ -3464,7 +3464,7 @@ function languageForPath(file) {
   if (extension === "vue" || extension === "java" || extension === "tsx" || extension === "jsx" || extension === "json" || extension === "html" || extension === "css" || extension === "scss" || extension === "sass") return extension;
   if (extension === "js" || extension === "mjs" || extension === "cjs") return "javascript";
   if (extension === "ts" || extension === "mts" || extension === "cts") return "typescript";
-  return "java";
+  return "text";
 }
 function lspLanguage(file) {
   const language = languageForPath(file);
@@ -3492,6 +3492,14 @@ async function activeWorkspace() {
   if (!row.address?.worktree) throw new Error("\u5F53\u524D\u5DE5\u4F5C\u533A\u5730\u5740\u4E0D\u53EF\u7528");
   return { root: await realpath(row.path), selector: row.address.worktree };
 }
+async function workspaceBySelector(selector) {
+  if (!selector || selector.length > 2e3 || selector.includes("\0")) throw new Error("\u5DE5\u4F5C\u533A\u6807\u8BC6\u65E0\u6548");
+  const { stdout } = await run(CLI, ["worktree", "show", "--worktree", selector, "--json"], { timeout: 12e3, maxBuffer: 1024 * 1024 });
+  const response = JSON.parse(stdout);
+  const row = response.result?.worktree;
+  if (!response.ok || !row || row.hostId && row.hostId !== "local" || row.address?.environment !== "local") throw new Error("\u63D0\u4EA4\u9605\u8BFB\u7684\u672C\u673A\u5DE5\u4F5C\u533A\u4E0D\u53EF\u7528");
+  return { root: await realpath(row.path), selector: row.address.worktree };
+}
 function inside(root, file) {
   const relative = path2.relative(root, file);
   return relative !== ".." && !relative.startsWith(`..${path2.sep}`) && !path2.isAbsolute(relative);
@@ -3509,7 +3517,7 @@ async function sourceFiles(root, extensions = sourceExtensions) {
   });
   return stdout.split(/\r?\n/).filter(Boolean);
 }
-async function matchDocument(root, text) {
+async function matchDocument(root, text, exactOnly = false) {
   const identity = sourceIdentity(text);
   const java = /^\s*(?:package\s+[\w.]+\s*;|import\s+(?:static\s+)?[\w.*]+\s*;|public\s+(?:(?:abstract|final|sealed)\s+)*(?:class|interface|enum|record)\s)/m.test(text);
   const files = await sourceFiles(root);
@@ -3537,7 +3545,7 @@ async function matchDocument(root, text) {
     }
   }
   const best = Math.max(...similar.map((item) => item.score));
-  return [...new Set(exact.length ? exact : semantic.length ? semantic : similar.filter((item) => item.score >= best - 0.02).map((item) => item.path))].sort();
+  return [...new Set(exactOnly ? exact : exact.length ? exact : semantic.length ? semantic : similar.filter((item) => item.score >= best - 0.02).map((item) => item.path))].sort();
 }
 async function projectRoot(file, workspaceRoot) {
   let current = path2.dirname(file);
@@ -3585,6 +3593,34 @@ function normalizeLocations(value) {
   return [...unique.values()];
 }
 
+// src/semantic.ts
+var tokenTypes = ["namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator"];
+var tokenModifiers = ["declaration", "definition", "readonly", "static", "deprecated", "abstract", "async", "modification", "documentation", "defaultLibrary"];
+function decodeSemanticTokens(text, data, legend) {
+  const starts = [0];
+  for (let i = 0; i < text.length; i++) if (text[i] === "\n") starts.push(i + 1);
+  const spans = [];
+  let line = 0, character = 0;
+  for (let i = 0; i + 4 < data.length; i += 5) {
+    const [deltaLine, deltaCharacter, length, index, flags] = data.slice(i, i + 5);
+    if (![deltaLine, deltaCharacter, length, index, flags].every((n) => Number.isInteger(n) && n >= 0)) continue;
+    line += deltaLine;
+    character = deltaLine ? deltaCharacter : character + deltaCharacter;
+    if (line >= starts.length || !length) continue;
+    const from = starts[line] + character;
+    const end = (starts[line + 1] ?? text.length + 1) - 1;
+    if (from + length > end) continue;
+    const has = (name) => {
+      const at = legend.tokenModifiers.indexOf(name);
+      return at >= 0 && at < 31 && !!(flags & 1 << at);
+    };
+    const type = legend.tokenTypes[index];
+    const kind = ["type", "class", "interface", "enum", "struct", "typeParameter", "record"].includes(type) ? "type" : ["method", "function", "annotationMember"].includes(type) ? "method" : ["decorator", "annotation"].includes(type) ? "annotation" : type === "enumMember" || has("readonly") && has("static") ? "constant" : type === "property" || type === "field" ? "field" : type === "parameter" || type === "recordComponent" ? "parameter" : type === "variable" ? "variable" : ["keyword", "modifier"].includes(type) ? "keyword" : ["string", "number", "comment"].includes(type) ? type : void 0;
+    if (kind) spans.push({ from, to: from + length, kind, ...has("static") ? { static: true } : {}, ...has("deprecated") ? { deprecated: true } : {} });
+  }
+  return spans;
+}
+
 // src/language-server.ts
 var LanguageServer = class {
   constructor(root, runtime, progress, log = () => {
@@ -3603,6 +3639,7 @@ var LanguageServer = class {
   resolveInitialized;
   stderr = "";
   stopped = false;
+  semanticLegend;
   start() {
     if (this.stopped) return Promise.reject(new Error("Java \u8BED\u8A00\u670D\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u91CD\u8BD5"));
     return this.ready ??= this.launch();
@@ -3682,19 +3719,26 @@ var LanguageServer = class {
     const timeout = new AbortController();
     const timer = setTimeout(() => timeout.abort(), 12e4);
     try {
-      await this.request("initialize", {
+      const initialized = await this.request("initialize", {
         processId: process.pid,
-        clientInfo: { name: "JumpLens", version: "0.3.2" },
+        clientInfo: { name: "JumpLens", version: "0.4.0" },
         rootUri: pathToFileURL2(this.root).href,
         workspaceFolders: [{ uri: pathToFileURL2(this.root).href, name: path3.basename(this.root) }],
         capabilities: {
           workspace: { configuration: true, workspaceFolders: true },
-          textDocument: { synchronization: { didSave: true }, definition: { linkSupport: true }, implementation: { linkSupport: true }, references: {} },
+          textDocument: {
+            synchronization: { didSave: true },
+            definition: { linkSupport: true },
+            implementation: { linkSupport: true },
+            references: {},
+            semanticTokens: { requests: { full: true, range: false }, tokenTypes, tokenModifiers, formats: ["relative"], multilineTokenSupport: false, overlappingTokenSupport: false }
+          },
           window: { workDoneProgress: true },
           general: { positionEncodings: ["utf-16"] }
         },
         initializationOptions: { settings: { java: this.javaSettings() }, extendedClientCapabilities: { classFileContentsSupport: true, progressReportProvider: true } }
       }, timeout.signal);
+      this.semanticLegend = initialized.capabilities?.semanticTokensProvider?.legend;
       await connection.sendNotification("initialized", {});
       await connection.sendNotification("workspace/didChangeConfiguration", { settings: { java: this.javaSettings() } });
     } catch (error) {
@@ -3768,6 +3812,28 @@ var LanguageServer = class {
       if (signal?.aborted) throw error;
       return this.request("java/classFileContents", { uri }, signal);
     }
+  }
+  async semanticTokens(uri, text, signal) {
+    await this.sync(uri, text);
+    if (!this.semanticLegend) return [];
+    if (this.initialization) await new Promise((resolve, reject) => {
+      const finish = (error) => {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        error ? reject(error) : resolve();
+      };
+      const abort = () => finish(new Error("\u8BF7\u6C42\u5DF2\u53D6\u6D88"));
+      const timer = setTimeout(() => finish(), 3e4);
+      timer.unref();
+      if (signal?.aborted) {
+        abort();
+        return;
+      }
+      signal?.addEventListener("abort", abort, { once: true });
+      void this.initialization.then(() => finish());
+    });
+    const result = await this.request("textDocument/semanticTokens/full", { textDocument: { uri } }, signal);
+    return result?.data ? decodeSemanticTokens(text, result.data, this.semanticLegend).slice(0, 2e4) : [];
   }
   async close(uri) {
     if (!this.documents.delete(uri) || this.stopped) return;
@@ -3972,7 +4038,7 @@ var WebLanguageServer = class {
     try {
       await this.request("initialize", {
         processId: process.pid,
-        clientInfo: { name: "JumpLens", version: "0.3.2" },
+        clientInfo: { name: "JumpLens", version: "0.4.0" },
         rootUri: pathToFileURL3(this.root).href,
         workspaceFolders: [{ uri: pathToFileURL3(this.root).href, name: path4.basename(this.root) }],
         capabilities: {
@@ -4108,6 +4174,245 @@ function describeVirtualTarget(target) {
   }
 }
 
+// src/review-worker.ts
+import { readFile as readFile4 } from "node:fs/promises";
+import path7 from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+
+// src/git-review.ts
+import { createHash as createHash3 } from "node:crypto";
+import { execFile as execFile2 } from "node:child_process";
+import { mkdir as mkdir3, readFile as readFile3, readdir as readdir3, realpath as realpath2, rename as rename2, rm as rm2, writeFile } from "node:fs/promises";
+import path6 from "node:path";
+var sourceFile = /\.(?:java|xml|properties|gradle|kts|json|vue|[cm]?[jt]sx?|css|scss|sass|html|ya?ml)$|(?:^|\/)lombok\.config$/i;
+var ignored = /(?:^|\/)(?:node_modules|target|build|dist|package-output|\.git)\//;
+var snapshots = /* @__PURE__ */ new Map();
+async function git(repository, args, maxBuffer = 4 * 1024 * 1024) {
+  return (await run("git", ["-C", repository, ...args], { encoding: "utf8", maxBuffer, timeout: 3e4 })).stdout;
+}
+async function gitRepositories(workspaceRoot) {
+  workspaceRoot = await realpath2(workspaceRoot);
+  try {
+    return [await realpath2((await git(workspaceRoot, ["rev-parse", "--show-toplevel"])).trim())];
+  } catch {
+  }
+  const repositories = [];
+  for (const entry of (await readdir3(workspaceRoot, { withFileTypes: true })).slice(0, 300)) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    const candidate = await realpath2(path6.join(workspaceRoot, entry.name));
+    if (!inside(workspaceRoot, candidate)) continue;
+    try {
+      const root = await realpath2((await git(candidate, ["rev-parse", "--show-toplevel"])).trim());
+      if (root === candidate) repositories.push(root);
+    } catch {
+    }
+  }
+  return repositories.sort();
+}
+async function commitHistory(repository) {
+  const output = await git(repository, ["log", "-40", "--format=%H%x00%s%x00%aI"]);
+  return output.trim().split("\n").filter(Boolean).map((line) => {
+    const [revision, subject, date] = line.split("\0");
+    return { revision, subject, date };
+  });
+}
+function changedPaths(output) {
+  const fields = output.split("\0");
+  const files = [];
+  for (let i = 0; i < fields.length && fields[i]; ) {
+    const status = fields[i++];
+    const first = fields[i++];
+    if (!first) throw new Error("Git \u6587\u4EF6\u6E05\u5355\u4E0D\u5B8C\u6574");
+    if (/^[RC]/.test(status)) {
+      const afterPath = fields[i++];
+      if (!afterPath) throw new Error("Git \u91CD\u547D\u540D\u8BB0\u5F55\u4E0D\u5B8C\u6574");
+      files.push({ status, beforePath: first, afterPath });
+    } else files.push({ status, ...status !== "A" ? { beforePath: first } : {}, ...status !== "D" ? { afterPath: first } : {} });
+  }
+  return files;
+}
+async function reviewCommit(repository, ref) {
+  if (!ref || ref.length > 200 || /[\0\r\n]/.test(ref) || ref.startsWith("-")) throw new Error("\u63D0\u4EA4\u6807\u8BC6\u65E0\u6548");
+  const revision = (await git(repository, ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`])).trim();
+  const metadata = (await git(repository, ["show", "-s", "--format=%P%n%s%n%aI", revision])).trimEnd().split("\n");
+  const parent = metadata[0].split(" ")[0] || void 0;
+  const output = parent ? await git(repository, ["diff", "--name-status", "-z", "--find-renames", parent, revision, "--"]) : await git(repository, ["diff-tree", "--root", "--no-commit-id", "-r", "--name-status", "-z", revision, "--"]);
+  return { revision, parent, subject: metadata[1], date: metadata[2], files: changedPaths(output) };
+}
+async function revisionDocument(repository, commit, file, side) {
+  const revision = side === "before" ? commit.parent : commit.revision;
+  const filename = side === "before" ? file.beforePath : file.afterPath;
+  if (!revision || !filename) return;
+  const contents = await run("git", ["-C", repository, "show", `${revision}:${filename}`], { encoding: "buffer", maxBuffer: 45e4, timeout: 15e3 });
+  const buffer = contents.stdout;
+  if (buffer.includes(0)) throw new Error("\u5F53\u524D\u6587\u4EF6\u662F\u4E8C\u8FDB\u5236\u6587\u4EF6\uFF0C\u4E0D\u80FD\u4F5C\u4E3A\u6E90\u7801\u663E\u793A");
+  return { repository, revision, path: filename, side, text: buffer.toString("utf8").replace(/\r\n?/g, "\n") };
+}
+function readObjects(repository, objects) {
+  return new Promise((resolve, reject) => {
+    const child = execFile2("git", ["-C", repository, "cat-file", "--batch"], { encoding: "buffer", maxBuffer: 70 * 1024 * 1024, timeout: 6e4 }, (error, stdout) => error ? reject(error) : resolve(stdout));
+    child.stdin?.on("error", reject);
+    child.stdin?.end(objects.join("\n") + "\n");
+  });
+}
+async function revisionWorkspace(repository, revision, cacheRoot = path6.join(CACHE, "revisions")) {
+  if (!/^[a-f0-9]{40,64}$/.test(revision)) throw new Error("\u5386\u53F2\u5206\u6790\u9700\u8981\u5B8C\u6574\u63D0\u4EA4\u54C8\u5E0C");
+  const key = createHash3("sha256").update(`${repository}\0${revision}`).digest("hex").slice(0, 32);
+  const directory = path6.join(cacheRoot, key);
+  const old = snapshots.get(directory);
+  if (old) return old;
+  const prepare = async () => {
+    if (await readFile3(path6.join(directory, ".jumplens-ready"), "utf8").then((text) => text === revision, () => false)) return directory;
+    const output = await git(repository, ["ls-tree", "-r", "-l", "-z", revision], 16 * 1024 * 1024);
+    const files = [];
+    for (const line of output.split("\0").filter(Boolean)) {
+      const at = line.indexOf("	");
+      const [mode, type, object2, size] = line.slice(0, at).trim().split(/\s+/);
+      const filename = line.slice(at + 1);
+      if (!/^100(?:644|755)$/.test(mode) || type !== "blob" || !sourceFile.test(filename) || ignored.test(filename)) continue;
+      if (!inside(directory, path6.resolve(directory, filename))) throw new Error("\u5386\u53F2\u6E90\u7801\u8DEF\u5F84\u65E0\u6548");
+      files.push({ path: filename, object: object2, size: Number(size) });
+    }
+    if (files.length > 2e4 || files.reduce((total, file) => total + file.size, 0) > 64 * 1024 * 1024) throw new Error("\u5386\u53F2\u5DE5\u7A0B\u6E90\u7801\u8D85\u8FC7\u5206\u6790\u7F13\u5B58\u4E0A\u9650\uFF0C\u53EF\u7EE7\u7EED\u9605\u8BFB\u8BED\u6CD5\u9AD8\u4EAE");
+    const staging = `${directory}.partial-${process.pid}-${Date.now()}`;
+    await mkdir3(staging, { recursive: true });
+    try {
+      const contents = files.length ? await readObjects(repository, files.map((file) => file.object)) : Buffer.alloc(0);
+      let offset = 0;
+      for (const file of files) {
+        const end = contents.indexOf(10, offset);
+        const header = contents.subarray(offset, end).toString("ascii");
+        if (end < 0 || header !== `${file.object} blob ${file.size}` || end + 1 + file.size >= contents.length) throw new Error("\u5386\u53F2\u6E90\u7801\u5BF9\u8C61\u8BFB\u53D6\u5931\u8D25");
+        const destination = path6.join(staging, file.path);
+        await mkdir3(path6.dirname(destination), { recursive: true });
+        await writeFile(destination, contents.subarray(end + 1, end + 1 + file.size));
+        offset = end + 1 + file.size + 1;
+      }
+      await writeFile(path6.join(staging, ".jumplens-ready"), revision);
+      try {
+        await rename2(staging, directory);
+      } catch (error) {
+        if (!await readFile3(path6.join(directory, ".jumplens-ready"), "utf8").then((text) => text === revision, () => false)) throw error;
+      }
+      return directory;
+    } finally {
+      await rm2(staging, { recursive: true, force: true });
+    }
+  };
+  const pending = prepare().catch((error) => {
+    snapshots.delete(directory);
+    throw error;
+  });
+  snapshots.set(directory, pending);
+  return pending;
+}
+
+// src/review-worker.ts
+function registerReview(orca, serverFor) {
+  const sessions = /* @__PURE__ */ new Map();
+  const stateFor = (caller) => {
+    const state = sessions.get(caller.panel.id);
+    if (!state) throw new Error("\u8BF7\u5148\u6253\u5F00\u63D0\u4EA4\u9605\u8BFB");
+    return state;
+  };
+  const assertCurrent = (state, generation, signal) => {
+    if (state.generation !== generation || signal?.aborted) throw new Error("\u5DF2\u5207\u6362\u6587\u4EF6\uFF0C\u5F53\u524D\u5206\u6790\u5DF2\u53D6\u6D88");
+  };
+  const repositoryFor = (state, input) => {
+    if (typeof input !== "string" || !state.repositories.includes(input)) throw new Error("\u8BF7\u9009\u62E9\u5F53\u524D\u5DE5\u4F5C\u533A\u4E2D\u7684 Git \u4ED3\u5E93");
+    return input;
+  };
+  orca.panels.handle("review-initialize", async (input, caller) => {
+    let state = sessions.get(caller.panel.id);
+    if (!state) {
+      const selector = input?.workspace;
+      const workspace = typeof selector === "string" ? await workspaceBySelector(selector) : await activeWorkspace();
+      state = { workspace, repositories: await gitRepositories(workspace.root), generation: 0 };
+      sessions.set(caller.panel.id, state);
+    }
+    return { repositories: state.repositories, workspace: state.workspace.root, selector: state.workspace.selector };
+  });
+  orca.panels.handle("review-history", async (input, caller) => {
+    const state = stateFor(caller);
+    return commitHistory(repositoryFor(state, input.repository));
+  });
+  orca.panels.handle("review-load", async (input, caller) => {
+    const data = input;
+    const state = stateFor(caller);
+    const repository = repositoryFor(state, data.repository);
+    if (typeof data.revision !== "string") throw new Error("\u8BF7\u9009\u62E9\u63D0\u4EA4");
+    const generation = ++state.generation;
+    state.commit = void 0;
+    state.documents = void 0;
+    const commit = await reviewCommit(repository, data.revision);
+    assertCurrent(state, generation, caller.signal);
+    state.repository = repository;
+    state.commit = commit;
+    return commit;
+  });
+  orca.panels.handle("review-file", async (input, caller) => {
+    const state = stateFor(caller);
+    const index = input.index;
+    const commit = state.commit;
+    if (!commit || !state.repository || !Number.isInteger(index) || !commit.files[Number(index)]) throw new Error("\u63D0\u4EA4\u6587\u4EF6\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+    const generation = ++state.generation;
+    state.documents = void 0;
+    const file = commit.files[Number(index)];
+    const [before, after] = await Promise.all(["before", "after"].map((side) => revisionDocument(state.repository, commit, file, side)));
+    assertCurrent(state, generation, caller.signal);
+    state.documents = { before, after };
+    return { before: before ?? null, after: after ?? null, generation };
+  });
+  async function analysis(input, caller) {
+    const data = input;
+    const state = stateFor(caller);
+    if (data.side !== "before" && data.side !== "after" || data.generation !== state.generation) throw new Error("\u63D0\u4EA4\u4FA7\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u8BD5");
+    const document = state.documents?.[data.side];
+    if (!document) throw new Error("\u6B64\u63D0\u4EA4\u4FA7\u6CA1\u6709\u6E90\u7801");
+    const generation = state.generation;
+    orca.panels.post("review-progress", { generation, message: `\u6B63\u5728\u5206\u6790 ${document.revision.slice(0, 8)} \u7684\u6E90\u7801\u2026` }, { panel: caller.panel.id });
+    const root = await revisionWorkspace(document.repository, document.revision);
+    assertCurrent(state, generation, caller.signal);
+    const context = await documentContext(path7.join(root, document.path), { root, selector: state.workspace.selector });
+    const server = await serverFor(context, document.text);
+    assertCurrent(state, generation, caller.signal);
+    return { state, document, context, server, generation, root };
+  }
+  orca.panels.handle("review-semantic", async (input, caller) => {
+    const current = await analysis(input, caller);
+    const tokens = await current.server.semanticTokens?.(current.context.uri, current.document.text, caller.signal) ?? [];
+    assertCurrent(current.state, current.generation, caller.signal);
+    return tokens;
+  });
+  orca.panels.handle("review-definition", async (input, caller) => {
+    const position = input.position;
+    if (!position || ![position.line, position.character].every((n) => Number.isInteger(n) && n >= 0)) throw new Error("\u6E90\u7801\u4F4D\u7F6E\u65E0\u6548");
+    const current = await analysis(input, caller);
+    const targets = await current.server.navigate(current.context.uri, current.document.text, position, "definition", caller.signal);
+    const results = [];
+    for (const target of targets.slice(0, 5)) {
+      let text;
+      if (target.uri.startsWith("jdt:")) text = await current.server.virtualText(target.uri, caller.signal);
+      else if (target.uri.startsWith("file:") && inside(current.root, fileURLToPath3(target.uri))) text = await readFile4(fileURLToPath3(target.uri), "utf8");
+      else continue;
+      if (text.length > 4e5) continue;
+      results.push({ ...sourcePreview(text, target.range, target.uri.startsWith("file:") ? path7.relative(current.root, fileURLToPath3(target.uri)) : target.label), revision: current.document.revision });
+    }
+    assertCurrent(current.state, current.generation, caller.signal);
+    return results;
+  });
+  orca.panels.handle("review-detach", (_input, caller) => {
+    const state = sessions.get(caller.panel.id);
+    if (state) state.generation++;
+    sessions.delete(caller.panel.id);
+    return { ok: true };
+  });
+  return () => {
+    for (const state of sessions.values()) state.generation++;
+    sessions.clear();
+  };
+}
+
 // src/worker.ts
 var cleanup;
 function object(input) {
@@ -4128,12 +4433,32 @@ function activate(orca) {
   const attachVersions = /* @__PURE__ */ new Map();
   const sourceChoices = /* @__PURE__ */ new Map();
   let runtime;
+  const progressUpdates = /* @__PURE__ */ new Map();
+  let progressTimer;
+  function flushProgress() {
+    progressTimer = void 0;
+    for (const [panel, message] of [...progressUpdates].slice(0, 3)) {
+      progressUpdates.delete(panel);
+      orca.panels.post("progress", { message }, { panel });
+    }
+    if (progressUpdates.size) {
+      progressTimer = setTimeout(flushProgress, 250);
+      progressTimer.unref();
+    }
+  }
+  function postProgress(panel, message) {
+    progressUpdates.set(panel, message);
+    if (!progressTimer) {
+      progressTimer = setTimeout(flushProgress, 250);
+      progressTimer.unref();
+    }
+  }
   const serverKey = (context) => `${languageForPath(context.path) === "java" ? "java" : "web"}:${context.root}`;
   async function serverFor(session) {
     const root = session.context.root;
     const key = serverKey(session.context);
     const serverProgress = (message) => {
-      for (const [panel, current2] of sessions) if (serverKey(current2.context) === key) orca.panels.post("progress", { message }, { panel });
+      for (const [panel, current2] of sessions) if (serverKey(current2.context) === key) postProgress(panel, message);
     };
     const old = servers.get(key);
     if (old?.server.healthy) {
@@ -4187,10 +4512,10 @@ function activate(orca) {
       const point = viewport;
       if (typeof point.top === "number" && typeof point.left === "number" && Number.isFinite(point.top) && Number.isFinite(point.left)) scroll = { top: Math.max(0, point.top), left: Math.max(0, point.left) };
     }
-    return { uri: session.context.uri, range: value, label: path6.basename(session.context.path), ...scroll ? { viewport: scroll } : {} };
+    return { uri: session.context.uri, range: value, label: path8.basename(session.context.path), ...scroll ? { viewport: scroll } : {} };
   }
   async function openFile(session, target) {
-    const file = await realpath2(fileURLToPath3(target.uri));
+    const file = await realpath3(fileURLToPath4(target.uri));
     if (!inside(session.context.workspace.root, file)) throw new Error("\u76EE\u6807\u6587\u4EF6\u4E0D\u5728\u5F53\u524D\u5DE5\u4F5C\u533A");
     const destination = { ...target, navigationId: ++navigationId };
     pending.set(target.uri, destination);
@@ -4207,13 +4532,13 @@ function activate(orca) {
     attachVersions.set(caller.panel.id, attachVersion);
     orca.panels.post("progress", { message: "\u6B63\u5728\u8BC6\u522B\u5F53\u524D\u6587\u4EF6\u2026" }, { panel: caller.panel.id });
     const workspace = await activeWorkspace();
-    const candidates = await matchDocument(workspace.root, text);
+    const candidates = await matchDocument(workspace.root, text, data.readOnly === true);
     if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error("\u6587\u4EF6\u5DF2\u5207\u6362\uFF0C\u5DF2\u53D6\u6D88\u8FC7\u671F\u7684\u6587\u4EF6\u8BC6\u522B");
     sourceChoices.set(caller.panel.id, { workspace, candidates });
     const chosen = typeof data.path === "string" ? data.path : candidates.length === 1 ? candidates[0] : void 0;
     if (!chosen) {
-      if (!candidates.length) throw new Error("\u5F53\u524D\u5DE5\u4F5C\u533A\u672A\u627E\u5230\u5BF9\u5E94\u6E90\u7801\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u5B58\u6587\u4EF6\u540E\u91CD\u65B0\u8FDE\u63A5");
-      return { candidates: candidates.map((file) => ({ path: file, label: path6.relative(workspace.root, file) })) };
+      if (!candidates.length) throw new Error(data.readOnly === true ? "\u6B64\u53EA\u8BFB\u6E90\u7801\u4E0E\u5DE5\u4F5C\u533A\u7248\u672C\u4E0D\u540C\uFF0C\u8BF7\u4ECE JumpLens \u63D0\u4EA4\u9605\u8BFB\u6253\u5F00\u5386\u53F2\u7248\u672C" : "\u5F53\u524D\u5DE5\u4F5C\u533A\u672A\u627E\u5230\u5BF9\u5E94\u6E90\u7801\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u5B58\u6587\u4EF6\u540E\u91CD\u65B0\u8FDE\u63A5");
+      return { candidates: candidates.map((file) => ({ path: file, label: path8.relative(workspace.root, file) })) };
     }
     if (!candidates.includes(chosen)) throw new Error("\u6587\u4EF6\u5339\u914D\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
     const context = await documentContext(chosen, workspace);
@@ -4247,7 +4572,7 @@ function activate(orca) {
   async function targetText(session, target, signal) {
     const buffer = [...sessions.values()].find((other) => other.context.uri === target.uri);
     if (buffer) return buffer.text;
-    if (target.uri.startsWith("file:")) return readFile3(fileURLToPath3(target.uri), "utf8");
+    if (target.uri.startsWith("file:")) return readFile5(fileURLToPath4(target.uri), "utf8");
     if (target.uri.startsWith("jdt:")) return (await serverFor(session)).virtualText(target.uri, signal);
     throw new Error("\u76EE\u6807\u6587\u6863\u7C7B\u578B\u4E0D\u53D7\u652F\u6301");
   }
@@ -4255,7 +4580,7 @@ function activate(orca) {
     const selected = object(input).path;
     const choices = sourceChoices.get(caller.panel.id);
     if (typeof selected !== "string" || !choices?.candidates.includes(selected)) throw new Error("\u5F53\u524D\u6587\u4EF6\u5019\u9009\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
-    return sourcePreview(await readFile3(selected, "utf8"), { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, path6.relative(choices.workspace.root, selected));
+    return sourcePreview(await readFile5(selected, "utf8"), { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, path8.relative(choices.workspace.root, selected));
   });
   orca.panels.handle("preview", async (input, caller) => {
     const target = object(input);
@@ -4269,7 +4594,7 @@ function activate(orca) {
     if (typeof query !== "string" || query.length > 300) throw new Error("\u6587\u4EF6\u641C\u7D22\u6761\u4EF6\u65E0\u6548");
     const files = await sourceFiles(session.context.workspace.root);
     const range = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
-    const targets = searchTargets(files.map((file) => ({ uri: pathToFileURL4(file).href, label: path6.relative(session.context.workspace.root, file), symbol: path6.basename(file), range })), query);
+    const targets = searchTargets(files.map((file) => ({ uri: pathToFileURL4(file).href, label: path8.relative(session.context.workspace.root, file), symbol: path8.basename(file), range })), query);
     const shown = targets.slice(0, 100);
     const allowed = permitted.get(caller.panel.id);
     for (const target of shown) allowed.add(target.uri);
@@ -4281,6 +4606,16 @@ function activate(orca) {
     await (await serverFor(session)).sync(session.context.uri, session.text);
     return { ok: true };
   });
+  orca.panels.handle("semantic", async (input, caller) => {
+    const session = sessionFor(caller);
+    const text = source(object(input).text);
+    session.text = text;
+    const server = await serverFor(session);
+    const tokens = await server.semanticTokens?.(session.context.uri, text, caller.signal) ?? [];
+    if (sessions.get(caller.panel.id) !== session || session.text !== text) return [];
+    return tokens;
+  });
+  const disposeReview = registerReview(orca, (context, text) => serverFor({ context, text, lastUsed: Date.now() }));
   orca.panels.handle("navigate", async (input, caller) => {
     const data = object(input);
     const session = sessionFor(caller);
@@ -4325,9 +4660,9 @@ function activate(orca) {
       return { virtual: true, text, uri: target.uri, range: target.range, label: target.label };
     }
     if (!target.uri.startsWith("file:")) throw new Error("\u5F53\u524D\u76EE\u6807\u6587\u6863\u7C7B\u578B\u4E0D\u53D7\u652F\u6301");
-    const file = await realpath2(fileURLToPath3(target.uri));
+    const file = await realpath3(fileURLToPath4(target.uri));
     if (!inside(session.context.workspace.root, file)) {
-      return { virtual: true, text: await readFile3(file, "utf8"), uri: target.uri, range: target.range, label: target.label };
+      return { virtual: true, text: await readFile5(file, "utf8"), uri: target.uri, range: target.range, label: target.label };
     }
     const origin = originOf(session, data.origin, data.originViewport);
     await openFile(session, target);
@@ -4364,6 +4699,7 @@ function activate(orca) {
   orca.panels.handle("detach", async (_input, caller) => {
     const session = sessions.get(caller.panel.id);
     sessions.delete(caller.panel.id);
+    progressUpdates.delete(caller.panel.id);
     permitted.delete(caller.panel.id);
     attachVersions.delete(caller.panel.id);
     sourceChoices.delete(caller.panel.id);
@@ -4380,6 +4716,9 @@ function activate(orca) {
   timer.unref();
   cleanup = () => {
     clearInterval(timer);
+    clearTimeout(progressTimer);
+    progressUpdates.clear();
+    disposeReview();
     for (const { server } of servers.values()) server.dispose();
     servers.clear();
     sessions.clear();

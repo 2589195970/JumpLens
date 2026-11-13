@@ -1,6 +1,6 @@
 {
   "name": "orca-jumplens",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -22,6 +22,7 @@
     "@codemirror/lang-json": "6.0.2",
     "@codemirror/lang-sass": "6.0.2",
     "@codemirror/language": "^6.11.3",
+    "@codemirror/merge": "6.12.3",
     "@codemirror/search": "^6.5.11",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.6",

@@ -4,6 +4,9 @@ import { codeEditor, languageForPath } from './language';
 import { languageName, type CodeLanguage } from '../src/languages';
 import { icon, type IconName } from './icons';
 import { start } from './sync';
+import { setupPalette } from './palette';
+import { semanticHighlighting } from './semantic';
+import type { SemanticSpan } from '../src/semantic';
 import { TargetPicker, type PickerItem } from './picker';
 import { targetKey } from '../src/candidates';
 import { errorMessage, type NavigationKind, type Range, type SourcePreview, type Target, type Viewport } from '../src/types';
@@ -29,6 +32,7 @@ let replacing = false;
 let bindingVersion = 0;
 const editMode = new Compartment();
 const languageMode = new Compartment();
+const semanticMode = new Compartment();
 let language: CodeLanguage = 'java';
 let picker: TargetPicker | undefined;
 
@@ -91,6 +95,7 @@ function reveal(range: Range, editor = view, scroll?: Viewport, done?: () => voi
 }
 
 const doc = await start();
+await setupPalette(element<HTMLSelectElement>('syntax-palette'));
 if (/^\s*<(?:template|script|style)\b/m.test(doc.value)) language = 'vue';
 else if (/^\s*(?:import\s+.+['"]|export\s|(?:const|let)\s)/m.test(doc.value)) language = 'typescript';
 element('language-name').textContent = languageName(language);
@@ -98,7 +103,7 @@ const fileStates = new Map<string, { state: EditorState; viewport: Viewport }>()
 function createState(text: string): EditorState {
   return EditorState.create({
     doc: text,
-    extensions: [languageMode.of(codeEditor(language)), theme, editMode.of(EditorState.readOnly.of(doc.readOnly)),
+    extensions: [languageMode.of(codeEditor(language)), semanticMode.of([]), theme, editMode.of(EditorState.readOnly.of(doc.readOnly)),
       EditorView.contentAttributes.of({ 'aria-label': '代码', spellcheck: 'false' }),
       Prec.highest(keymap.of([
         { key: 'Mod-b', run: () => { void navigate('definition'); return true; } },
@@ -168,7 +173,7 @@ async function connect(chosenPath?: string): Promise<void> {
   const version = ++bindingVersion;
   status('正在识别当前文件…');
   try {
-    const result = await request<{ uri?: string; path?: string; root?: string; selection?: Range; viewport?: Viewport; navigationId?: number; candidates?: { path: string; label: string }[] }>('attach', { text: doc.value, ...(chosenPath ? { path: chosenPath } : {}) });
+    const result = await request<{ uri?: string; path?: string; root?: string; selection?: Range; viewport?: Viewport; navigationId?: number; candidates?: { path: string; label: string }[] }>('attach', { text: doc.value, readOnly: doc.readOnly, ...(chosenPath ? { path: chosenPath } : {}) });
     if (version !== bindingVersion) return;
     if (result.candidates) {
       picker?.close();
@@ -190,6 +195,7 @@ async function connect(chosenPath?: string): Promise<void> {
     } else if (displayedUri && displayedUri !== uri) view.setState(createState(doc.value));
     displayedUri = uri;
     view.dispatch({ effects: languageMode.reconfigure(codeEditor(language)) });
+    view.dispatch({ effects: semanticMode.reconfigure(language === 'java' ? semanticHighlighting((text, signal) => request<SemanticSpan[]>('semantic', { text }, signal)) : []) });
     element('language-name').textContent = languageName(language);
     connected = true;
     enabled();

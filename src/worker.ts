@@ -13,17 +13,18 @@ import { searchTargets, sourcePreview, uniqueTargets } from './candidates';
 import { describeTarget, describeVirtualTarget } from './target-source';
 import { errorMessage, type DocumentContext, type LocationSnapshot, type NavigationKind, type Range, type Settings, type Target, type Workspace } from './types';
 import { registerReview } from './review-worker';
+import { setLocale, t } from './i18n';
 
 type Session = { context: DocumentContext; text: string; lastUsed: number };
 type ServerEntry = { server: NavigationServer; lastUsed: number };
 let cleanup: (() => void) | undefined;
 
 function object(input: unknown): Record<string, unknown> {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('请求参数无效');
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error(t('invalidRequest'));
   return input as Record<string, unknown>;
 }
 function source(input: unknown): string {
-  if (typeof input !== 'string' || input.length > 2 * 1024 * 1024) throw new Error('文件过大或内容无效');
+  if (typeof input !== 'string' || input.length > 2 * 1024 * 1024) throw new Error(t('invalidContent'));
   return input;
 }
 
@@ -81,7 +82,7 @@ export default function activate(orca: OrcaWorkerApi): void {
 
   function sessionFor(context: PanelRequestContext): Session {
     const session = sessions.get(context.panel.id);
-    if (!session) throw new Error('请先识别当前文件，或点击重新连接');
+    if (!session) throw new Error(t('noSession'));
     session.lastUsed = Date.now();
     return session;
   }
@@ -96,7 +97,7 @@ export default function activate(orca: OrcaWorkerApi): void {
     const value = object(range);
     for (const side of ['start', 'end']) {
       const point = object(value[side]);
-      if (!Number.isInteger(point.line) || !Number.isInteger(point.character) || Number(point.line) < 0 || Number(point.character) < 0) throw new Error('导航位置无效');
+      if (!Number.isInteger(point.line) || !Number.isInteger(point.character) || Number(point.line) < 0 || Number(point.character) < 0) throw new Error(t('invalidNavigationPosition'));
     }
     let scroll: { top: number; left: number } | undefined;
     if (viewport && typeof viewport === 'object') {
@@ -108,7 +109,7 @@ export default function activate(orca: OrcaWorkerApi): void {
 
   async function openFile(session: Session, target: LocationSnapshot): Promise<void> {
     const file = await realpath(fileURLToPath(target.uri));
-    if (!inside(session.context.workspace.root, file)) throw new Error('目标文件不在当前工作区');
+    if (!inside(session.context.workspace.root, file)) throw new Error(t('targetOutsideWorkspace'));
     const destination = { ...target, navigationId: ++navigationId };
     pending.set(target.uri, destination);
     while (pending.size > 100) pending.delete(pending.keys().next().value!);
@@ -118,24 +119,26 @@ export default function activate(orca: OrcaWorkerApi): void {
     }
   }
 
+  orca.panels.handle('locale', (input) => ({ locale: setLocale(String(object(input).locale ?? '')) }));
+
   orca.panels.handle('attach', async (input, caller) => {
     const data = object(input);
     const text = source(data.text);
     const attachVersion = (attachVersions.get(caller.panel.id) ?? 0) + 1;
     attachVersions.set(caller.panel.id, attachVersion);
-    orca.panels.post('progress', { message: '正在识别当前文件…' }, { panel: caller.panel.id });
+    orca.panels.post('progress', { message: t('identifyingFile') }, { panel: caller.panel.id });
     const workspace = await activeWorkspace();
     const candidates = await matchDocument(workspace.root, text, data.readOnly === true);
-    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error('文件已切换，已取消过期的文件识别');
+    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error(t('staleAttach'));
     sourceChoices.set(caller.panel.id, { workspace, candidates });
     const chosen = typeof data.path === 'string' ? data.path : candidates.length === 1 ? candidates[0] : undefined;
     if (!chosen) {
-      if (!candidates.length) throw new Error(data.readOnly === true ? '此只读源码与工作区版本不同，请从 JumpLens 提交阅读打开历史版本' : '当前工作区未找到对应源码文件，请保存文件后重新连接');
+      if (!candidates.length) throw new Error(data.readOnly === true ? t('readOnlyMismatch') : t('sourceNotFound'));
       return { candidates: candidates.map((file) => ({ path: file, label: path.relative(workspace.root, file) })) };
     }
-    if (!candidates.includes(chosen)) throw new Error('文件匹配已变化，请重新选择');
+    if (!candidates.includes(chosen)) throw new Error(t('matchChanged'));
     const context = await documentContext(chosen, workspace);
-    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error('文件已切换，已取消过期的文件识别');
+    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error(t('staleAttach'));
     const previous = sessions.get(caller.panel.id);
     const session = { context, text, lastUsed: Date.now() };
     sessions.set(caller.panel.id, session);
@@ -167,27 +170,27 @@ export default function activate(orca: OrcaWorkerApi): void {
     if (buffer) return buffer.text;
     if (target.uri.startsWith('file:')) return readFile(fileURLToPath(target.uri), 'utf8');
     if (target.uri.startsWith('jdt:')) return (await serverFor(session)).virtualText(target.uri, signal);
-    throw new Error('目标文档类型不受支持');
+    throw new Error(t('unsupportedTarget'));
   }
 
   orca.panels.handle('preview-source', async (input, caller) => {
     const selected = object(input).path;
     const choices = sourceChoices.get(caller.panel.id);
-    if (typeof selected !== 'string' || !choices?.candidates.includes(selected)) throw new Error('当前文件候选已变化，请重新选择');
+    if (typeof selected !== 'string' || !choices?.candidates.includes(selected)) throw new Error(t('candidatesChanged'));
     return sourcePreview(await readFile(selected, 'utf8'), { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, path.relative(choices.workspace.root, selected));
   });
 
   orca.panels.handle('preview', async (input, caller) => {
     const target = object(input) as unknown as Target;
     const session = sessionFor(caller);
-    if (!permitted.get(caller.panel.id)?.has(target.uri)) throw new Error('预览目标已过期，请重新查询');
+    if (!permitted.get(caller.panel.id)?.has(target.uri)) throw new Error(t('previewExpired'));
     return sourcePreview(await targetText(session, target, caller.signal), target.range, target.label);
   });
 
   orca.panels.handle('files', async (input, caller) => {
     const session = sessionFor(caller);
     const query = object(input).query;
-    if (typeof query !== 'string' || query.length > 300) throw new Error('文件搜索条件无效');
+    if (typeof query !== 'string' || query.length > 300) throw new Error(t('invalidFileQuery'));
     const files = await sourceFiles(session.context.workspace.root);
     const range = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
     const targets = searchTargets(files.map((file) => ({ uri: pathToFileURL(file).href, label: path.relative(session.context.workspace.root, file), symbol: path.basename(file), range })), query);
@@ -222,7 +225,7 @@ export default function activate(orca: OrcaWorkerApi): void {
     const text = source(data.text);
     const position = object(data.position);
     const kind = data.kind as NavigationKind;
-    if (!['definition', 'implementation', 'references', 'typeDefinition'].includes(kind) || !Number.isInteger(position.line) || !Number.isInteger(position.character) || Number(position.line) < 0 || Number(position.character) < 0) throw new Error('跳转位置无效');
+    if (!['definition', 'implementation', 'references', 'typeDefinition'].includes(kind) || !Number.isInteger(position.line) || !Number.isInteger(position.character) || Number(position.line) < 0 || Number(position.character) < 0) throw new Error(t('invalidJumpPosition'));
     session.text = text;
     const server = await serverFor(session);
     const point = { line: Number(position.line), character: Number(position.character) };
@@ -235,7 +238,7 @@ export default function activate(orca: OrcaWorkerApi): void {
       effectiveKind = 'references';
       targets = uniqueTargets(await server.navigate(session.context.uri, text, point, 'references', caller.signal));
     }
-    if (sessions.get(caller.panel.id) !== session) throw new Error('文件已切换，已取消过期的导航查询');
+    if (sessions.get(caller.panel.id) !== session) throw new Error(t('staleNavigation'));
     orca.log(`Java ${kind}：${session.context.path}:${Number(position.line) + 1}:${Number(position.character) + 1} -> ${targets.length} 个结果`);
     const allowed = permitted.get(caller.panel.id)!;
     const texts = new Map<string, string>();
@@ -254,15 +257,15 @@ export default function activate(orca: OrcaWorkerApi): void {
     const data = object(input);
     const session = sessionFor(caller);
     const target = data as unknown as Target;
-    if (typeof target.uri !== 'string' || !permitted.get(caller.panel.id)?.has(target.uri)) throw new Error('目标不属于本次导航查询结果');
+    if (typeof target.uri !== 'string' || !permitted.get(caller.panel.id)?.has(target.uri)) throw new Error(t('targetNotInResults'));
     const range = object(target.range);
     const start = object(range.start);
-    if (!Number.isInteger(start.line) || !Number.isInteger(start.character) || Number(start.line) < 0 || Number(start.character) < 0) throw new Error('目标位置无效');
+    if (!Number.isInteger(start.line) || !Number.isInteger(start.character) || Number(start.line) < 0 || Number(start.character) < 0) throw new Error(t('invalidTargetPosition'));
     if (target.uri.startsWith('jdt:')) {
       const text = await (await serverFor(session)).virtualText(target.uri, caller.signal);
       return { virtual: true, text, uri: target.uri, range: target.range, label: target.label };
     }
-    if (!target.uri.startsWith('file:')) throw new Error('当前目标文档类型不受支持');
+    if (!target.uri.startsWith('file:')) throw new Error(t('unsupportedCurrentTarget'));
     const file = await realpath(fileURLToPath(target.uri));
     if (!inside(session.context.workspace.root, file)) {
       // Sources outside the workspace are read-only, never saved through the current tab.
@@ -281,7 +284,7 @@ export default function activate(orca: OrcaWorkerApi): void {
   orca.panels.handle('history-state', (_input, caller) => historyFor(sessionFor(caller)).state);
   orca.panels.handle('history', async (input, caller) => {
     const data = object(input);
-    if (data.direction !== 'back' && data.direction !== 'forward') throw new Error('导航方向无效');
+    if (data.direction !== 'back' && data.direction !== 'forward') throw new Error(t('invalidDirection'));
     const session = sessionFor(caller);
     const history = historyFor(session);
     const destination = history.peek(data.direction);

@@ -9,6 +9,7 @@ import type { NavigationServer } from './navigation-server';
 import { normalizeLocations, type NavigationKind, type Position, type Progress, type Target } from './types';
 import { uniqueTargets } from './candidates';
 import { vueOptionsNavigation } from './vue-options';
+import { t } from './i18n';
 
 /** Vue's standalone service handles both SFC virtual documents and JS/TS projects. */
 export class WebLanguageServer implements NavigationServer {
@@ -29,7 +30,7 @@ export class WebLanguageServer implements NavigationServer {
     const dist = existsSync(path.join(moduleDir, 'web-runtime')) ? moduleDir : path.resolve(moduleDir, '../dist');
     const modules = path.join(dist, 'web-runtime/node_modules');
     this.runtimeModules = modules;
-    this.progress('正在启动 Vue / TypeScript 分析服务…');
+    this.progress(t('webStarting'));
     const child = spawn(process.execPath, [path.join(modules, '@vue/language-server/bin/vue-language-server.js'), '--stdio'], { cwd: this.root, stdio: 'pipe' });
     this.child = child;
     child.stderr.on('data', (chunk) => { this.stderr = (this.stderr + String(chunk)).slice(-4000); });
@@ -71,22 +72,22 @@ export class WebLanguageServer implements NavigationServer {
         });
         this.watcher.on('error', (error) => this.log(error.message));
       } catch (error) { this.log(`文件监听不可用：${error}`); }
-      this.progress('Vue / TypeScript · 分析已就绪');
-    } catch (error) { this.dispose(); throw new Error(`Vue / TS 分析服务启动失败：${error}`); }
+      this.progress(t('webReady'));
+    } catch (error) { this.dispose(); throw new Error(t('webStartFailed', { error: String(error) })); }
   }
 
   private async request<T>(method: string, params: unknown, signal?: AbortSignal): Promise<T> {
-    if (!this.connection || this.stopped) throw new Error(`Vue / TS 分析服务不可用：${this.stderr.slice(-500)}`);
+    if (!this.connection || this.stopped) throw new Error(t('webUnavailable', { detail: this.stderr.slice(-500) }));
     const token = new CancellationTokenSource();
     const abort = () => token.cancel();
-    if (signal?.aborted) throw new Error('请求已取消');
+    if (signal?.aborted) throw new Error(t('requestCancelled'));
     signal?.addEventListener('abort', abort, { once: true });
     try { return await this.connection.sendRequest<T>(method, params, token.token); }
     finally { signal?.removeEventListener('abort', abort); token.dispose(); }
   }
 
   async sync(uri: string, text: string): Promise<void> {
-    if (this.stopped) throw new Error('Vue / TS 分析服务已停止，请重新连接');
+    if (this.stopped) throw new Error(t('webStopped'));
     await (this.ready ??= this.launch());
     const action = this.queue.then(async () => {
       const previous = this.documents.get(uri);
@@ -111,7 +112,7 @@ export class WebLanguageServer implements NavigationServer {
     }
     return targets;
   }
-  async virtualText(): Promise<string> { throw new Error('此语言服务仅提供磁盘源码预览'); }
+  async virtualText(): Promise<string> { throw new Error(t('diskPreviewOnly')); }
   async close(uri: string): Promise<void> {
     if (this.documents.delete(uri) && !this.stopped) await this.connection?.sendNotification('textDocument/didClose', { textDocument: { uri } });
   }

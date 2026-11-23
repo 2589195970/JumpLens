@@ -7,20 +7,21 @@ import { commitHistory, gitRepositories, reviewCommit, revisionDocument, revisio
 import type { DocumentContext, Position, Workspace } from './types';
 import type { NavigationServer } from './navigation-server';
 import { sourcePreview } from './candidates';
+import { t } from './i18n';
 
 type ReviewState = { workspace: Workspace; repositories: string[]; repository?: string; commit?: ReviewCommit; documents?: { before?: RevisionDocument; after?: RevisionDocument }; generation: number };
 export function registerReview(orca: OrcaWorkerApi, serverFor: (context: DocumentContext, text: string) => Promise<NavigationServer>): () => void {
   const sessions = new Map<string, ReviewState>();
   const stateFor = (caller: PanelRequestContext) => {
     const state = sessions.get(caller.panel.id);
-    if (!state) throw new Error('请先打开提交阅读');
+    if (!state) throw new Error(t('openReviewFirst'));
     return state;
   };
   const assertCurrent = (state: ReviewState, generation: number, signal?: AbortSignal) => {
-    if (state.generation !== generation || signal?.aborted) throw new Error('已切换文件，当前分析已取消');
+    if (state.generation !== generation || signal?.aborted) throw new Error(t('reviewStale'));
   };
   const repositoryFor = (state: ReviewState, input: unknown) => {
-    if (typeof input !== 'string' || !state.repositories.includes(input)) throw new Error('请选择当前工作区中的 Git 仓库');
+    if (typeof input !== 'string' || !state.repositories.includes(input)) throw new Error(t('chooseRepository'));
     return input;
   };
   orca.panels.handle('review-initialize', async (input, caller) => {
@@ -41,7 +42,7 @@ export function registerReview(orca: OrcaWorkerApi, serverFor: (context: Documen
     const data = input as { repository: unknown; revision: unknown };
     const state = stateFor(caller);
     const repository = repositoryFor(state, data.repository);
-    if (typeof data.revision !== 'string') throw new Error('请选择提交');
+    if (typeof data.revision !== 'string') throw new Error(t('chooseCommit'));
     const generation = ++state.generation;
     state.commit = undefined;
     state.documents = undefined;
@@ -55,7 +56,7 @@ export function registerReview(orca: OrcaWorkerApi, serverFor: (context: Documen
     const state = stateFor(caller);
     const index = (input as { index?: unknown }).index;
     const commit = state.commit;
-    if (!commit || !state.repository || !Number.isInteger(index) || !commit.files[Number(index)]) throw new Error('提交文件已变化，请重新选择');
+    if (!commit || !state.repository || !Number.isInteger(index) || !commit.files[Number(index)]) throw new Error(t('commitFilesChanged'));
     const generation = ++state.generation;
     state.documents = undefined;
     const file = commit.files[Number(index)];
@@ -67,11 +68,11 @@ export function registerReview(orca: OrcaWorkerApi, serverFor: (context: Documen
   async function analysis(input: unknown, caller: PanelRequestContext) {
     const data = input as { side?: unknown; generation?: unknown };
     const state = stateFor(caller);
-    if (data.side !== 'before' && data.side !== 'after' || data.generation !== state.generation) throw new Error('提交侧已变化，请重试');
+    if (data.side !== 'before' && data.side !== 'after' || data.generation !== state.generation) throw new Error(t('sideChanged'));
     const document = state.documents?.[data.side];
-    if (!document) throw new Error('此提交侧没有源码');
+    if (!document) throw new Error(t('sideHasNoSource'));
     const generation = state.generation;
-    orca.panels.post('review-progress', { generation, message: `正在分析 ${document.revision.slice(0, 8)} 的源码…` }, { panel: caller.panel.id });
+    orca.panels.post('review-progress', { generation, message: t('analyzingRevision', { revision: document.revision.slice(0, 8) }) }, { panel: caller.panel.id });
     const root = await revisionWorkspace(document.repository, document.revision);
     assertCurrent(state, generation, caller.signal);
     const context = await documentContext(path.join(root, document.path), { root, selector: state.workspace.selector });
@@ -87,7 +88,7 @@ export function registerReview(orca: OrcaWorkerApi, serverFor: (context: Documen
   });
   orca.panels.handle('review-definition', async (input, caller) => {
     const position = (input as { position?: Position }).position;
-    if (!position || ![position.line, position.character].every((n) => Number.isInteger(n) && n >= 0)) throw new Error('源码位置无效');
+    if (!position || ![position.line, position.character].every((n) => Number.isInteger(n) && n >= 0)) throw new Error(t('invalidSourcePosition'));
     const current = await analysis(input, caller);
     const targets = await current.server.navigate(current.context.uri, current.document.text, position, 'definition', caller.signal);
     const results = [];

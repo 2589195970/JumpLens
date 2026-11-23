@@ -10,6 +10,8 @@ import type { SemanticSpan } from '../src/semantic';
 import { TargetPicker, type PickerItem } from './picker';
 import { targetKey } from '../src/candidates';
 import { errorMessage, type NavigationKind, type Range, type SourcePreview, type Target, type Viewport } from '../src/types';
+import { localize } from './localize';
+import { t } from '../src/i18n';
 
 const element = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 for (const target of Array.from(document.querySelectorAll<HTMLElement>('[data-icon]'))) target.prepend(icon(target.dataset.icon as IconName));
@@ -95,6 +97,7 @@ function reveal(range: Range, editor = view, scroll?: Viewport, done?: () => voi
 }
 
 const doc = await start();
+await localize();
 await setupPalette(element<HTMLSelectElement>('syntax-palette'));
 if (/^\s*<(?:template|script|style)\b/m.test(doc.value)) language = 'vue';
 else if (/^\s*(?:import\s+.+['"]|export\s|(?:const|let)\s)/m.test(doc.value)) language = 'typescript';
@@ -104,7 +107,7 @@ function createState(text: string): EditorState {
   return EditorState.create({
     doc: text,
     extensions: [languageMode.of(codeEditor(language)), semanticMode.of([]), theme, editMode.of(EditorState.readOnly.of(doc.readOnly)),
-      EditorView.contentAttributes.of({ 'aria-label': '代码', spellcheck: 'false' }),
+      EditorView.contentAttributes.of({ 'aria-label': t('code'), spellcheck: 'false' }),
       Prec.highest(keymap.of([
         { key: 'Mod-b', run: () => { void navigate('definition'); return true; } },
         { key: 'F12', run: () => { void navigate('definition'); return true; } },
@@ -171,20 +174,20 @@ doc.onReplace((text) => {
 
 async function connect(chosenPath?: string): Promise<void> {
   const version = ++bindingVersion;
-  status('正在识别当前文件…');
+  status(t('identifyingFile'));
   try {
     const result = await request<{ uri?: string; path?: string; root?: string; selection?: Range; viewport?: Viewport; navigationId?: number; candidates?: { path: string; label: string }[] }>('attach', { text: doc.value, readOnly: doc.readOnly, ...(chosenPath ? { path: chosenPath } : {}) });
     if (version !== bindingVersion) return;
     if (result.candidates) {
       picker?.close();
-      picker = new TargetPicker({ title: '选择当前文件路径', onClose: () => view.focus(), onError: (error) => status(errorMessage(error), true), items: result.candidates.map((item) => ({
-        id: item.path, title: item.path.split('/').pop()!, context: item.label, detail: '当前文档内容匹配到多个工程文件',
+      picker = new TargetPicker({ title: t('choosePathTitle'), onClose: () => view.focus(), onError: (error) => status(errorMessage(error), true), items: result.candidates.map((item) => ({
+        id: item.path, title: item.path.split('/').pop()!, context: item.label, detail: t('multipleMatchesDetail'),
         preview: (signal) => request<SourcePreview>('preview-source', { path: item.path }, signal), choose: () => connect(item.path)
       })) });
-      status('找到多个同名文件，请选择当前文件路径');
+      status(t('multipleMatchesStatus'));
       return;
     }
-    if (!result.uri || !result.path) throw new Error('无法识别当前文件');
+    if (!result.uri || !result.path) throw new Error(t('cannotIdentify'));
     uri = result.uri;
     language = languageForPath(result.path);
     const cached = fileStates.get(uri);
@@ -201,7 +204,7 @@ async function connect(chosenPath?: string): Promise<void> {
     enabled();
     element('path').textContent = `\u200e${result.path}`;
     element('path').title = result.path;
-    status(`${languageName(language)} · 已连接`);
+    status(t('connected', { language: languageName(language) }));
     if (result.selection) reveal(result.selection, view, result.viewport, () => { void request('reveal-done', { uri: result.uri, navigationId: result.navigationId }).catch(() => {}); });
     await updateHistory();
   } catch (error) { if (version === bindingVersion) status(errorMessage(error), true); }
@@ -222,7 +225,7 @@ function candidate(target: Target, previewOnly = false, grouped = false): Picker
 function findFile(): void {
   if (!connected || busy) return;
   picker?.close();
-  picker = new TargetPicker({ title: '文件', onClose: () => view.focus(), onError: (error) => status(errorMessage(error), true), load: async (query, signal) => {
+  picker = new TargetPicker({ title: t('files'), onClose: () => view.focus(), onError: (error) => status(errorMessage(error), true), load: async (query, signal) => {
     const result = await request<{ targets: Target[]; total: number }>('files', { query }, signal);
     return { items: result.targets.map((target) => candidate(target)), total: result.total };
   } });
@@ -236,18 +239,18 @@ async function navigate(kind: NavigationKind, previewOnly = false): Promise<void
   activeRequest = controller;
   const id = ++requestId;
   busy = true; enabled();
-  status(kind === 'references' ? '正在查找引用…' : kind === 'implementation' ? '正在查找实现…' : '正在查找定义…');
+  status(t(kind === 'references' ? 'findingReferences' : kind === 'implementation' ? 'findingImplementations' : 'findingDefinitions'));
   try {
     const result = await request<{ targets: Target[]; kind: NavigationKind }>('navigate', { text: view.state.doc.toString(), position: position(view.state.selection.main.head), kind }, controller.signal);
     if (id !== requestId || controller.signal.aborted) return;
-    if (!result.targets.length) { status('没有找到结果。若工程正在首次分析，请稍后重试'); return; }
+    if (!result.targets.length) { status(t('noResults')); return; }
     const effective = result.kind ?? kind;
     if (result.targets.length === 1 && effective !== 'references') { await openTarget(result.targets[0], previewOnly); return; }
-    const title = effective === 'references' ? '引用' : effective === 'implementation' ? '实现' : effective === 'typeDefinition' ? '类型' : '声明';
+    const [choose, found] = effective === 'references' ? ['chooseReference', 'foundReferences'] as const : effective === 'implementation' ? ['chooseImplementation', 'foundImplementations'] as const : effective === 'typeDefinition' ? ['chooseType', 'foundTypes'] as const : ['chooseDeclaration', 'foundDeclarations'] as const;
     const targets = effective === 'references' ? [...result.targets].sort((a, b) => a.label.localeCompare(b.label) || a.range.start.line - b.range.start.line) : result.targets;
     picker?.close();
-    picker = new TargetPicker({ title: `选择${title}`, onClose: () => view.focus(), items: targets.map((target) => candidate(target, previewOnly, effective === 'references')), onError: (error) => status(errorMessage(error), true) });
-    status(`找到 ${result.targets.length} 个${title}`);
+    picker = new TargetPicker({ title: t(choose), onClose: () => view.focus(), items: targets.map((target) => candidate(target, previewOnly, effective === 'references')), onError: (error) => status(errorMessage(error), true) });
+    status(t(found, { count: result.targets.length }));
   } catch (error) { if (!controller.signal.aborted) status(errorMessage(error), true); }
   finally {
     if (activeRequest === controller) {
@@ -268,11 +271,11 @@ async function openTarget(target: Target, previewOnly = false): Promise<void> {
     virtualView?.destroy();
     virtualMode(true);
     element('virtual-title').textContent = result.label ?? target.label;
-    virtualView = new EditorView({ parent: element('virtual-editor'), doc: result.text ?? '', extensions: [codeEditor(languageForPath(result.label ?? target.label)), theme, EditorState.readOnly.of(true), EditorView.editable.of(false), EditorView.contentAttributes.of({ tabindex: '0', 'aria-label': '只读依赖源码' })] });
+    virtualView = new EditorView({ parent: element('virtual-editor'), doc: result.text ?? '', extensions: [codeEditor(languageForPath(result.label ?? target.label)), theme, EditorState.readOnly.of(true), EditorView.editable.of(false), EditorView.contentAttributes.of({ tabindex: '0', 'aria-label': t('readOnlyDependency') })] });
     reveal(result.range ?? target.range, virtualView);
     element('close-virtual').focus();
   } else if (target.uri === uri) reveal(target.range);
-  status('已定位目标');
+  status(t('targetRevealed'));
   await updateHistory();
 }
 
@@ -312,8 +315,8 @@ document.addEventListener('keydown', (event) => {
   }
 });
 element('reconnect').addEventListener('click', () => {
-  status('正在重新连接…');
-  void connect().then(async () => { if (connected) { await request('restart'); status(`${languageName(language)} · 已重新连接`); } }).catch((error) => status(errorMessage(error), true));
+  status(t('reconnecting'));
+  void connect().then(async () => { if (connected) { await request('restart'); status(t('reconnected', { language: languageName(language) })); } }).catch((error) => status(errorMessage(error), true));
 });
 orca.plugin.on('progress', (data) => { const message = (data as { message?: string }).message; if (message && !busy) status(message); });
 orca.plugin.on('reveal', (data) => { const value = data as { uri: string; range: Range; viewport?: Viewport; navigationId?: number }; if (value.uri === uri) { reveal(value.range, view, value.viewport, () => { void request('reveal-done', { uri: value.uri, navigationId: value.navigationId }).catch(() => {}); }); void updateHistory(); } });

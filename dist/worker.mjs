@@ -418,22 +418,22 @@ var require_linkedMap = __commonJS({
       }
       forEach(callbackfn, thisArg) {
         const state = this._state;
-        let current = this._head;
-        while (current) {
+        let current2 = this._head;
+        while (current2) {
           if (thisArg) {
-            callbackfn.bind(thisArg)(current.value, current.key, this);
+            callbackfn.bind(thisArg)(current2.value, current2.key, this);
           } else {
-            callbackfn(current.value, current.key, this);
+            callbackfn(current2.value, current2.key, this);
           }
           if (this._state !== state) {
             throw new Error(`LinkedMap got modified during iteration.`);
           }
-          current = current.next;
+          current2 = current2.next;
         }
       }
       keys() {
         const state = this._state;
-        let current = this._head;
+        let current2 = this._head;
         const iterator = {
           [Symbol.iterator]: () => {
             return iterator;
@@ -442,9 +442,9 @@ var require_linkedMap = __commonJS({
             if (this._state !== state) {
               throw new Error(`LinkedMap got modified during iteration.`);
             }
-            if (current) {
-              const result = { value: current.key, done: false };
-              current = current.next;
+            if (current2) {
+              const result = { value: current2.key, done: false };
+              current2 = current2.next;
               return result;
             } else {
               return { value: void 0, done: true };
@@ -455,7 +455,7 @@ var require_linkedMap = __commonJS({
       }
       values() {
         const state = this._state;
-        let current = this._head;
+        let current2 = this._head;
         const iterator = {
           [Symbol.iterator]: () => {
             return iterator;
@@ -464,9 +464,9 @@ var require_linkedMap = __commonJS({
             if (this._state !== state) {
               throw new Error(`LinkedMap got modified during iteration.`);
             }
-            if (current) {
-              const result = { value: current.value, done: false };
-              current = current.next;
+            if (current2) {
+              const result = { value: current2.value, done: false };
+              current2 = current2.next;
               return result;
             } else {
               return { value: void 0, done: true };
@@ -477,7 +477,7 @@ var require_linkedMap = __commonJS({
       }
       entries() {
         const state = this._state;
-        let current = this._head;
+        let current2 = this._head;
         const iterator = {
           [Symbol.iterator]: () => {
             return iterator;
@@ -486,9 +486,9 @@ var require_linkedMap = __commonJS({
             if (this._state !== state) {
               throw new Error(`LinkedMap got modified during iteration.`);
             }
-            if (current) {
-              const result = { value: [current.key, current.value], done: false };
-              current = current.next;
+            if (current2) {
+              const result = { value: [current2.key, current2.value], done: false };
+              current2 = current2.next;
               return result;
             } else {
               return { value: void 0, done: true };
@@ -508,17 +508,17 @@ var require_linkedMap = __commonJS({
           this.clear();
           return;
         }
-        let current = this._head;
+        let current2 = this._head;
         let currentSize = this.size;
-        while (current && currentSize > newSize) {
-          this._map.delete(current.key);
-          current = current.next;
+        while (current2 && currentSize > newSize) {
+          this._map.delete(current2.key);
+          current2 = current2.next;
           currentSize--;
         }
-        this._head = current;
+        this._head = current2;
         this._size = currentSize;
-        if (current) {
-          current.previous = void 0;
+        if (current2) {
+          current2.previous = void 0;
         }
         this._state++;
       }
@@ -3308,6 +3308,605 @@ import path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
+
+// src/i18n.ts
+var zh = {
+  // Worker requests
+  invalidRequest: "\u8BF7\u6C42\u53C2\u6570\u65E0\u6548",
+  invalidContent: "\u6587\u4EF6\u8FC7\u5927\u6216\u5185\u5BB9\u65E0\u6548",
+  noSession: "\u8BF7\u5148\u8BC6\u522B\u5F53\u524D\u6587\u4EF6\uFF0C\u6216\u70B9\u51FB\u91CD\u65B0\u8FDE\u63A5",
+  invalidNavigationPosition: "\u5BFC\u822A\u4F4D\u7F6E\u65E0\u6548",
+  targetOutsideWorkspace: "\u76EE\u6807\u6587\u4EF6\u4E0D\u5728\u5F53\u524D\u5DE5\u4F5C\u533A",
+  identifyingFile: "\u6B63\u5728\u8BC6\u522B\u5F53\u524D\u6587\u4EF6\u2026",
+  staleAttach: "\u6587\u4EF6\u5DF2\u5207\u6362\uFF0C\u5DF2\u53D6\u6D88\u8FC7\u671F\u7684\u6587\u4EF6\u8BC6\u522B",
+  readOnlyMismatch: "\u6B64\u53EA\u8BFB\u6E90\u7801\u4E0E\u5DE5\u4F5C\u533A\u7248\u672C\u4E0D\u540C\uFF0C\u8BF7\u4ECE JumpLens \u63D0\u4EA4\u9605\u8BFB\u6253\u5F00\u5386\u53F2\u7248\u672C",
+  sourceNotFound: "\u5F53\u524D\u5DE5\u4F5C\u533A\u672A\u627E\u5230\u5BF9\u5E94\u6E90\u7801\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u5B58\u6587\u4EF6\u540E\u91CD\u65B0\u8FDE\u63A5",
+  matchChanged: "\u6587\u4EF6\u5339\u914D\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9",
+  unsupportedTarget: "\u76EE\u6807\u6587\u6863\u7C7B\u578B\u4E0D\u53D7\u652F\u6301",
+  candidatesChanged: "\u5F53\u524D\u6587\u4EF6\u5019\u9009\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9",
+  previewExpired: "\u9884\u89C8\u76EE\u6807\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u91CD\u65B0\u67E5\u8BE2",
+  invalidFileQuery: "\u6587\u4EF6\u641C\u7D22\u6761\u4EF6\u65E0\u6548",
+  invalidJumpPosition: "\u8DF3\u8F6C\u4F4D\u7F6E\u65E0\u6548",
+  staleNavigation: "\u6587\u4EF6\u5DF2\u5207\u6362\uFF0C\u5DF2\u53D6\u6D88\u8FC7\u671F\u7684\u5BFC\u822A\u67E5\u8BE2",
+  targetNotInResults: "\u76EE\u6807\u4E0D\u5C5E\u4E8E\u672C\u6B21\u5BFC\u822A\u67E5\u8BE2\u7ED3\u679C",
+  invalidTargetPosition: "\u76EE\u6807\u4F4D\u7F6E\u65E0\u6548",
+  unsupportedCurrentTarget: "\u5F53\u524D\u76EE\u6807\u6587\u6863\u7C7B\u578B\u4E0D\u53D7\u652F\u6301",
+  invalidDirection: "\u5BFC\u822A\u65B9\u5411\u65E0\u6548",
+  // Runtime downloads
+  downloadFailed: "\u4E0B\u8F7D\u5931\u8D25\uFF08HTTP {status}\uFF09\uFF1A{url}",
+  downloadTooLarge: "\u4E0B\u8F7D\u6587\u4EF6\u8D85\u51FA\u5927\u5C0F\u9650\u5236",
+  downloading: "\u6B63\u5728\u4E0B\u8F7D\u8FD0\u884C\u7EC4\u4EF6\uFF1A{received} MB",
+  downloadingWithTotal: "\u6B63\u5728\u4E0B\u8F7D\u8FD0\u884C\u7EC4\u4EF6\uFF1A{received} MB / {total} MB",
+  checksumFailed: "\u4E0B\u8F7D\u6821\u9A8C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5",
+  extracting: "\u6821\u9A8C\u901A\u8FC7\uFF0C\u6B63\u5728\u89E3\u538B\u8FD0\u884C\u7EC4\u4EF6\u2026",
+  javaHomeInvalid: "\u8BED\u8A00\u670D\u52A1\u5668 JDK \u9700\u8981 Java 25 \u6216\u66F4\u9AD8\u7248\u672C\uFF0C\u8BF7\u68C0\u67E5\u63D2\u4EF6\u8BBE\u7F6E",
+  platformUnsupported: "\u8BF7\u5728\u63D2\u4EF6\u8BBE\u7F6E\u4E2D\u6307\u5B9A Java 25 \u7684\u5B89\u88C5\u76EE\u5F55",
+  preparingJava: "\u9996\u6B21\u4F7F\u7528\uFF1A\u51C6\u5907 Java \u8BED\u8A00\u670D\u52A1\u8FD0\u884C\u73AF\u5883\u2026",
+  javaMetadataFailed: "\u65E0\u6CD5\u8BFB\u53D6 Java \u8FD0\u884C\u73AF\u5883\u4FE1\u606F\uFF08HTTP {status}\uFF09",
+  javaMetadataInvalid: "Java \u8FD0\u884C\u73AF\u5883\u4E0B\u8F7D\u4FE1\u606F\u65E0\u6548",
+  javaInstallFailed: "Java \u8FD0\u884C\u73AF\u5883\u5B89\u88C5\u5931\u8D25",
+  jdtlsPluginsMissing: "JDT LS \u76EE\u5F55\u4E2D\u7F3A\u5C11 plugins\uFF0C\u8BF7\u68C0\u67E5\u63D2\u4EF6\u8BBE\u7F6E",
+  preparingJdtls: "\u9996\u6B21\u4F7F\u7528\uFF1A\u51C6\u5907 Java \u8BED\u8A00\u670D\u52A1\u5668\u2026",
+  jdtlsChecksumUnavailable: "\u65E0\u6CD5\u8BFB\u53D6 JDT LS \u6821\u9A8C\u4FE1\u606F",
+  jdtlsChecksumInvalid: "JDT LS \u6821\u9A8C\u4FE1\u606F\u65E0\u6548",
+  projectJdkUnknown: "\u65E0\u6CD5\u8BC6\u522B\u9879\u76EE JDK \u7248\u672C\uFF0C\u8BF7\u68C0\u67E5\u63D2\u4EF6\u8BBE\u7F6E\u4E2D\u7684\u9879\u76EE JDK \u76EE\u5F55",
+  preparingLombok: "\u6B63\u5728\u51C6\u5907 Lombok \u5206\u6790\u652F\u6301\u2026",
+  javaRuntimeReady: "Java \u8FD0\u884C\u73AF\u5883\u5DF2\u5C31\u7EEA",
+  // Language services
+  javaStopped: "Java \u8BED\u8A00\u670D\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u91CD\u8BD5",
+  jdtlsLauncherMissing: "JDT LS \u7F3A\u5C11\u542F\u52A8\u7EC4\u4EF6",
+  jdtlsConfigMissing: "JDT LS \u7F3A\u5C11\u5F53\u524D\u5E73\u53F0\u914D\u7F6E",
+  javaStarting: "\u6B63\u5728\u542F\u52A8 Java \u5206\u6790\u670D\u52A1\u2026",
+  javaReady: "Java \u5206\u6790\u5DF2\u5C31\u7EEA",
+  javaAnalyzing: "\u6B63\u5728\u5206\u6790 Java \u5DE5\u7A0B\u2026",
+  javaStartFailed: "Java \u5206\u6790\u670D\u52A1\u542F\u52A8\u5931\u8D25\uFF1A{error}",
+  javaUnavailable: "Java \u5206\u6790\u670D\u52A1\u4E0D\u53EF\u7528",
+  javaUnavailableDetail: "Java \u5206\u6790\u670D\u52A1\u4E0D\u53EF\u7528\uFF1A{detail}",
+  requestCancelled: "\u8BF7\u6C42\u5DF2\u53D6\u6D88",
+  finishingAnalysis: "\u6B63\u5728\u5B8C\u6210\u5DE5\u7A0B\u5206\u6790\uFF0C\u8BF7\u7A0D\u5019\u2026",
+  webStarting: "\u6B63\u5728\u542F\u52A8 Vue / TypeScript \u5206\u6790\u670D\u52A1\u2026",
+  webReady: "Vue / TypeScript \xB7 \u5206\u6790\u5DF2\u5C31\u7EEA",
+  webStartFailed: "Vue / TS \u5206\u6790\u670D\u52A1\u542F\u52A8\u5931\u8D25\uFF1A{error}",
+  webUnavailable: "Vue / TS \u5206\u6790\u670D\u52A1\u4E0D\u53EF\u7528\uFF1A{detail}",
+  webStopped: "Vue / TS \u5206\u6790\u670D\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u91CD\u65B0\u8FDE\u63A5",
+  diskPreviewOnly: "\u6B64\u8BED\u8A00\u670D\u52A1\u4EC5\u63D0\u4F9B\u78C1\u76D8\u6E90\u7801\u9884\u89C8",
+  // Workspaces and Git
+  workspaceUnreadable: "\u65E0\u6CD5\u8BFB\u53D6 Orca \u5DE5\u4F5C\u533A",
+  selectWorkspace: "\u8BF7\u5148\u5728 Orca \u4E2D\u9009\u62E9\u5F53\u524D\u5DE5\u7A0B\u7684\u5DE5\u4F5C\u533A",
+  localOnly: "\u4EE3\u7801\u5BFC\u822A\u76EE\u524D\u652F\u6301\u672C\u673A\u5DE5\u4F5C\u533A",
+  workspaceAddressUnavailable: "\u5F53\u524D\u5DE5\u4F5C\u533A\u5730\u5740\u4E0D\u53EF\u7528",
+  invalidWorkspaceId: "\u5DE5\u4F5C\u533A\u6807\u8BC6\u65E0\u6548",
+  reviewWorkspaceUnavailable: "\u63D0\u4EA4\u9605\u8BFB\u7684\u672C\u673A\u5DE5\u4F5C\u533A\u4E0D\u53EF\u7528",
+  tooManyFiles: "\u5DE5\u4F5C\u533A\u6E90\u7801\u6587\u4EF6\u8FC7\u591A\uFF0C\u8BF7\u6253\u5F00\u5177\u4F53\u5DE5\u7A0B\u540E\u91CD\u8BD5",
+  unsupportedFile: "\u8BF7\u9009\u62E9\u5F53\u524D\u5DE5\u4F5C\u533A\u5185\u7684 Java\u3001Vue \u6216 JS/TS \u6587\u4EF6",
+  gitListIncomplete: "Git \u6587\u4EF6\u6E05\u5355\u4E0D\u5B8C\u6574",
+  gitRenameIncomplete: "Git \u91CD\u547D\u540D\u8BB0\u5F55\u4E0D\u5B8C\u6574",
+  invalidRevision: "\u63D0\u4EA4\u6807\u8BC6\u65E0\u6548",
+  binaryFile: "\u5F53\u524D\u6587\u4EF6\u662F\u4E8C\u8FDB\u5236\u6587\u4EF6\uFF0C\u4E0D\u80FD\u4F5C\u4E3A\u6E90\u7801\u663E\u793A",
+  fullHashRequired: "\u5386\u53F2\u5206\u6790\u9700\u8981\u5B8C\u6574\u63D0\u4EA4\u54C8\u5E0C",
+  invalidHistoryPath: "\u5386\u53F2\u6E90\u7801\u8DEF\u5F84\u65E0\u6548",
+  historyTooLarge: "\u5386\u53F2\u5DE5\u7A0B\u6E90\u7801\u8D85\u8FC7\u5206\u6790\u7F13\u5B58\u4E0A\u9650\uFF0C\u53EF\u7EE7\u7EED\u9605\u8BFB\u8BED\u6CD5\u9AD8\u4EAE",
+  historyObjectFailed: "\u5386\u53F2\u6E90\u7801\u5BF9\u8C61\u8BFB\u53D6\u5931\u8D25",
+  openReviewFirst: "\u8BF7\u5148\u6253\u5F00\u63D0\u4EA4\u9605\u8BFB",
+  reviewStale: "\u5DF2\u5207\u6362\u6587\u4EF6\uFF0C\u5F53\u524D\u5206\u6790\u5DF2\u53D6\u6D88",
+  chooseRepository: "\u8BF7\u9009\u62E9\u5F53\u524D\u5DE5\u4F5C\u533A\u4E2D\u7684 Git \u4ED3\u5E93",
+  chooseCommit: "\u8BF7\u9009\u62E9\u63D0\u4EA4",
+  commitFilesChanged: "\u63D0\u4EA4\u6587\u4EF6\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9",
+  sideChanged: "\u63D0\u4EA4\u4FA7\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u8BD5",
+  sideHasNoSource: "\u6B64\u63D0\u4EA4\u4FA7\u6CA1\u6709\u6E90\u7801",
+  analyzingRevision: "\u6B63\u5728\u5206\u6790 {revision} \u7684\u6E90\u7801\u2026",
+  invalidSourcePosition: "\u6E90\u7801\u4F4D\u7F6E\u65E0\u6548",
+  libraryModule: "\u4F9D\u8D56\u5E93",
+  plainText: "\u6587\u672C",
+  // Code navigation page
+  toolbarLabel: "\u4EE3\u7801\u5BFC\u822A\u64CD\u4F5C",
+  backLabel: "\u8FD4\u56DE\u4E0A\u6B21\u8DF3\u8F6C\u4F4D\u7F6E",
+  backTitle: "\u8FD4\u56DE\uFF08\u2318[ / Ctrl+Alt+\u2190\uFF09",
+  forwardLabel: "\u524D\u5F80\u4E0B\u6B21\u8DF3\u8F6C\u4F4D\u7F6E",
+  forwardTitle: "\u524D\u8FDB\uFF08\u2318] / Ctrl+Alt+\u2192\uFF09",
+  definition: "\u5B9A\u4E49",
+  definitionTitle: "\u8DF3\u8F6C\u5B9A\u4E49\uFF08Cmd/Ctrl+B \u6216 F12\uFF09",
+  implementation: "\u5B9E\u73B0",
+  implementationTitle: "\u8DF3\u8F6C\u5B9E\u73B0\uFF08Cmd/Ctrl+Alt+B\uFF09",
+  references: "\u5F15\u7528",
+  referencesTitle: "\u67E5\u627E\u5F15\u7528\uFF08Shift+F12\uFF09",
+  moreLabel: "\u66F4\u591A\u5BFC\u822A\u64CD\u4F5C",
+  moreTitle: "\u66F4\u591A\u64CD\u4F5C",
+  typeDefinition: "\u8DF3\u8F6C\u7C7B\u578B",
+  quickDefinition: "\u9884\u89C8\u5B9A\u4E49",
+  reconnect: "\u91CD\u65B0\u8FDE\u63A5\u8BED\u8A00\u670D\u52A1",
+  findFileTitle: "\u6309\u540D\u79F0\u6216\u8DEF\u5F84\u67E5\u627E\u6587\u4EF6\uFF08Cmd+Shift+O / Ctrl+Shift+N\uFF09",
+  findFile: "\u67E5\u627E\u6587\u4EF6",
+  syntaxPalette: "\u4EE3\u7801\u914D\u8272",
+  editorLabel: "\u4EE3\u7801\u7F16\u8F91\u533A",
+  connecting: "\u6B63\u5728\u8FDE\u63A5 JumpLens\u2026",
+  readOnlySource: "\u53EA\u8BFB\u6E90\u7801",
+  sourcePreview: "\u6E90\u7801\u9884\u89C8",
+  readOnly: "\u53EA\u8BFB",
+  closeSourcePreview: "\u5173\u95ED\u6E90\u7801\u9884\u89C8",
+  closeEsc: "\u5173\u95ED\uFF08Esc\uFF09",
+  code: "\u4EE3\u7801",
+  choosePathTitle: "\u9009\u62E9\u5F53\u524D\u6587\u4EF6\u8DEF\u5F84",
+  multipleMatchesDetail: "\u5F53\u524D\u6587\u6863\u5185\u5BB9\u5339\u914D\u5230\u591A\u4E2A\u5DE5\u7A0B\u6587\u4EF6",
+  multipleMatchesStatus: "\u627E\u5230\u591A\u4E2A\u540C\u540D\u6587\u4EF6\uFF0C\u8BF7\u9009\u62E9\u5F53\u524D\u6587\u4EF6\u8DEF\u5F84",
+  cannotIdentify: "\u65E0\u6CD5\u8BC6\u522B\u5F53\u524D\u6587\u4EF6",
+  connected: "{language} \xB7 \u5DF2\u8FDE\u63A5",
+  reconnecting: "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u2026",
+  reconnected: "{language} \xB7 \u5DF2\u91CD\u65B0\u8FDE\u63A5",
+  files: "\u6587\u4EF6",
+  findingReferences: "\u6B63\u5728\u67E5\u627E\u5F15\u7528\u2026",
+  findingImplementations: "\u6B63\u5728\u67E5\u627E\u5B9E\u73B0\u2026",
+  findingDefinitions: "\u6B63\u5728\u67E5\u627E\u5B9A\u4E49\u2026",
+  noResults: "\u6CA1\u6709\u627E\u5230\u7ED3\u679C\u3002\u82E5\u5DE5\u7A0B\u6B63\u5728\u9996\u6B21\u5206\u6790\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5",
+  chooseReference: "\u9009\u62E9\u5F15\u7528",
+  chooseImplementation: "\u9009\u62E9\u5B9E\u73B0",
+  chooseType: "\u9009\u62E9\u7C7B\u578B",
+  chooseDeclaration: "\u9009\u62E9\u58F0\u660E",
+  foundReferences: "\u627E\u5230 {count} \u4E2A\u5F15\u7528",
+  foundImplementations: "\u627E\u5230 {count} \u4E2A\u5B9E\u73B0",
+  foundTypes: "\u627E\u5230 {count} \u4E2A\u7C7B\u578B",
+  foundDeclarations: "\u627E\u5230 {count} \u4E2A\u58F0\u660E",
+  readOnlyDependency: "\u53EA\u8BFB\u4F9D\u8D56\u6E90\u7801",
+  targetRevealed: "\u5DF2\u5B9A\u4F4D\u76EE\u6807",
+  // Candidate picker
+  choosePreview: "\u9009\u62E9\u5019\u9009\u4EE5\u9884\u89C8\u6E90\u7801",
+  closePicker: "\u5173\u95ED\u5019\u9009\u9009\u62E9",
+  searchFiles: "\u641C\u7D22\u6587\u4EF6\u540D\u6216\u8DEF\u5F84\u2026",
+  filterCandidates: "\u7B5B\u9009\u540D\u79F0\u3001\u5305\u540D\u6216\u8DEF\u5F84\u2026",
+  filterLabel: "\u7B5B\u9009\u5BFC\u822A\u5019\u9009",
+  candidatesLabel: "\u5BFC\u822A\u5019\u9009",
+  candidatePreview: "\u5019\u9009\u4EE3\u7801\u9884\u89C8",
+  keySelect: "\u9009\u62E9",
+  keyOpen: "\u6253\u5F00",
+  keyClose: "\u5173\u95ED",
+  pickerHint: "\u8F93\u5165\u8DEF\u5F84\u53EF\u533A\u5206\u540C\u540D\u6587\u4EF6",
+  searching: "\u6B63\u5728\u641C\u7D22\u2026",
+  searchFailed: "\u641C\u7D22\u5931\u8D25",
+  narrowHint: "\u7EE7\u7EED\u8F93\u5165\u53EF\u7F29\u5C0F\u8303\u56F4",
+  candidateCount: "{count} \u4E2A\u5019\u9009",
+  noMatches: "\u6CA1\u6709\u5339\u914D\u7684\u5019\u9009\uFF0C\u8BF7\u4FEE\u6539\u7B5B\u9009\u6761\u4EF6",
+  nothingToPreview: "\u6CA1\u6709\u53EF\u9884\u89C8\u7684\u5019\u9009",
+  loadingPreview: "\u6B63\u5728\u52A0\u8F7D\u6E90\u7801\u9884\u89C8\u2026",
+  candidateSource: "\u5019\u9009\u53EA\u8BFB\u6E90\u7801",
+  previewFailed: "\u65E0\u6CD5\u9884\u89C8\uFF1A{error}",
+  // Commit reader
+  reviewDocumentTitle: "JumpLens \u63D0\u4EA4\u9605\u8BFB",
+  commitReader: "\u63D0\u4EA4\u9605\u8BFB",
+  gitRepository: "Git \u4ED3\u5E93",
+  revisionLabel: "\u63D0\u4EA4\u54C8\u5E0C\u6216\u5F15\u7528",
+  viewCommit: "\u67E5\u770B\u63D0\u4EA4",
+  readingWorkspace: "\u6B63\u5728\u8BFB\u53D6\u5DE5\u4F5C\u533A\u2026",
+  commitFilesLabel: "\u672C\u6B21\u63D0\u4EA4\u7684\u6587\u4EF6",
+  commitDiff: "\u63D0\u4EA4\u5DEE\u5F02",
+  parentCommit: "\u7236\u63D0\u4EA4",
+  thisCommit: "\u672C\u6B21\u63D0\u4EA4",
+  emptyHint: "\u9009\u62E9\u63D0\u4EA4\u548C\u6587\u4EF6\uFF0C\u5373\u53EF\u9605\u8BFB\u4E24\u4FA7\u6E90\u7801",
+  reviewIdle: "\u8BED\u6CD5\u989C\u8272\u5373\u65F6\u663E\u793A\uFF1BJava \u7B26\u53F7\u5206\u6790\u5728\u540E\u53F0\u5B8C\u6210",
+  previousChange: "\u4E0A\u4E00\u5904",
+  nextChange: "\u4E0B\u4E00\u5904",
+  previewDialog: "\u540C\u7248\u672C\u5B9A\u4E49\u9884\u89C8",
+  definitionPreview: "\u5B9A\u4E49\u9884\u89C8",
+  definitionCandidates: "\u5B9A\u4E49\u5019\u9009",
+  invalidReviewConfig: "\u9605\u8BFB\u914D\u7F6E\u65E0\u6548\uFF0C\u5C06\u4F7F\u7528\u5F53\u524D\u5DE5\u4F5C\u533A",
+  findingRevisionDefinition: "\u6B63\u5728\u67E5\u627E\u540C\u7248\u672C\u5B9A\u4E49\u2026",
+  noRevisionDefinition: "\u6B64\u7248\u672C\u6CA1\u6709\u53EF\u9884\u89C8\u7684\u5B9A\u4E49",
+  definitionFromSide: "\u5B9A\u4E49\u6765\u81EA\u5F53\u524D\u63D0\u4EA4\u4FA7\u7684\u540C\u7248\u672C\u6E90\u7801",
+  parentSource: "\u7236\u63D0\u4EA4\u53EA\u8BFB\u6E90\u7801",
+  commitSource: "\u672C\u6B21\u63D0\u4EA4\u53EA\u8BFB\u6E90\u7801",
+  semanticReady: "Java \u8BED\u4E49\u7740\u8272\u5DF2\u5C31\u7EEA \xB7 Cmd/Ctrl+B \u67E5\u770B\u540C\u7248\u672C\u5B9A\u4E49",
+  syntaxOnly: "Java \u8BED\u6CD5\u9AD8\u4EAE \xB7 Cmd/Ctrl+B \u67E5\u770B\u540C\u7248\u672C\u5B9A\u4E49",
+  symbolsUnavailable: "\u5DF2\u663E\u793A\u8BED\u6CD5\u9AD8\u4EAE\uFF1B\u7B26\u53F7\u5206\u6790\u6682\u4E0D\u53EF\u7528\uFF1A{error}",
+  readingCommitFile: "\u6B63\u5728\u8BFB\u53D6\u63D0\u4EA4\u6587\u4EF6\u2026",
+  sideMissing: "\u6B64\u4FA7\u4E0D\u5B58\u5728\u6587\u4EF6",
+  changeCount: "{count} \u5904\u53D8\u66F4",
+  readOnlyDiff: "\u53EA\u8BFB\u63D0\u4EA4\u5DEE\u5F02 \xB7 Java \u7B26\u53F7\u5206\u6790\u5728\u540E\u53F0\u5B8C\u6210 \xB7 Cmd/Ctrl+B \u67E5\u770B\u5B9A\u4E49",
+  readingCommit: "\u6B63\u5728\u8BFB\u53D6\u63D0\u4EA4\u2026",
+  fileCount: "{count} \u4E2A\u6587\u4EF6",
+  fileCountRoot: "{count} \u4E2A\u6587\u4EF6 \xB7 \u6839\u63D0\u4EA4",
+  noCommitChanges: "\u6B64\u63D0\u4EA4\u6CA1\u6709\u76F8\u5BF9\u7B2C\u4E00\u7236\u63D0\u4EA4\u7684\u6587\u4EF6\u53D8\u66F4",
+  noFileChanges: "\u6CA1\u6709\u6587\u4EF6\u53D8\u66F4",
+  noGitRepository: "\u5F53\u524D\u5DE5\u4F5C\u533A\u6CA1\u6709 Git \u4ED3\u5E93",
+  openInGitProject: "\u8BF7\u5728 Git \u9879\u76EE\u6216\u5305\u542B\u5B50\u4ED3\u5E93\u7684\u6587\u4EF6\u5939\u5DE5\u4F5C\u533A\u6253\u5F00\u63D0\u4EA4\u9605\u8BFB"
+};
+var en = {
+  invalidRequest: "Invalid request parameters",
+  invalidContent: "The file is too large or its content is invalid",
+  noSession: "Identify the current file first, or click Reconnect",
+  invalidNavigationPosition: "Invalid navigation position",
+  targetOutsideWorkspace: "The target file is outside the current workspace",
+  identifyingFile: "Identifying the current file\u2026",
+  staleAttach: "The file changed, so the outdated file detection was cancelled",
+  readOnlyMismatch: "This read-only source differs from the workspace version. Open older versions from the JumpLens Commit Reader",
+  sourceNotFound: "No matching source file in the current workspace. Save the file and reconnect",
+  matchChanged: "The matching files changed. Choose again",
+  unsupportedTarget: "Unsupported target document type",
+  candidatesChanged: "The current file candidates changed. Choose again",
+  previewExpired: "The preview target expired. Search again",
+  invalidFileQuery: "Invalid file search query",
+  invalidJumpPosition: "Invalid jump position",
+  staleNavigation: "The file changed, so the outdated navigation query was cancelled",
+  targetNotInResults: "The target is not part of this navigation result",
+  invalidTargetPosition: "Invalid target position",
+  unsupportedCurrentTarget: "Unsupported document type for this target",
+  invalidDirection: "Invalid navigation direction",
+  downloadFailed: "Download failed (HTTP {status}): {url}",
+  downloadTooLarge: "The download exceeds the size limit",
+  downloading: "Downloading runtime components: {received} MB",
+  downloadingWithTotal: "Downloading runtime components: {received} MB / {total} MB",
+  checksumFailed: "Download verification failed. Try again",
+  extracting: "Verified. Extracting runtime components\u2026",
+  javaHomeInvalid: "The language server JDK must be Java 25 or later. Check the plugin settings",
+  platformUnsupported: "Set the Java 25 installation directory in the plugin settings",
+  preparingJava: "First run: preparing the Java language service runtime\u2026",
+  javaMetadataFailed: "Could not read the Java runtime information (HTTP {status})",
+  javaMetadataInvalid: "Invalid Java runtime download information",
+  javaInstallFailed: "Java runtime installation failed",
+  jdtlsPluginsMissing: "The JDT LS directory has no plugins folder. Check the plugin settings",
+  preparingJdtls: "First run: preparing the Java language server\u2026",
+  jdtlsChecksumUnavailable: "Could not read the JDT LS checksum",
+  jdtlsChecksumInvalid: "Invalid JDT LS checksum",
+  projectJdkUnknown: "Could not detect the project JDK version. Check the project JDK directory in the plugin settings",
+  preparingLombok: "Preparing Lombok support\u2026",
+  javaRuntimeReady: "Java runtime ready",
+  javaStopped: "The Java language service stopped. Try again",
+  jdtlsLauncherMissing: "JDT LS is missing its launcher",
+  jdtlsConfigMissing: "JDT LS has no configuration for this platform",
+  javaStarting: "Starting the Java analysis service\u2026",
+  javaReady: "Java analysis ready",
+  javaAnalyzing: "Analyzing the Java project\u2026",
+  javaStartFailed: "The Java analysis service failed to start: {error}",
+  javaUnavailable: "The Java analysis service is unavailable",
+  javaUnavailableDetail: "The Java analysis service is unavailable: {detail}",
+  requestCancelled: "Request cancelled",
+  finishingAnalysis: "Finishing the project analysis, please wait\u2026",
+  webStarting: "Starting the Vue / TypeScript analysis service\u2026",
+  webReady: "Vue / TypeScript \xB7 analysis ready",
+  webStartFailed: "The Vue / TS analysis service failed to start: {error}",
+  webUnavailable: "The Vue / TS analysis service is unavailable: {detail}",
+  webStopped: "The Vue / TS analysis service stopped. Reconnect",
+  diskPreviewOnly: "This language service only previews source files on disk",
+  workspaceUnreadable: "Could not read the Orca workspace",
+  selectWorkspace: "Select this project's workspace in Orca first",
+  localOnly: "Code navigation currently supports local workspaces only",
+  workspaceAddressUnavailable: "The current workspace address is unavailable",
+  invalidWorkspaceId: "Invalid workspace identifier",
+  reviewWorkspaceUnavailable: "The local workspace for the Commit Reader is unavailable",
+  tooManyFiles: "The workspace has too many source files. Open a specific project and try again",
+  unsupportedFile: "Choose a Java, Vue or JS/TS file in the current workspace",
+  gitListIncomplete: "The Git file list is incomplete",
+  gitRenameIncomplete: "A Git rename record is incomplete",
+  invalidRevision: "Invalid commit reference",
+  binaryFile: "This is a binary file and cannot be shown as source",
+  fullHashRequired: "History analysis needs a full commit hash",
+  invalidHistoryPath: "Invalid historical source path",
+  historyTooLarge: "The historical project source exceeds the analysis cache limit. Syntax highlighting is still available",
+  historyObjectFailed: "Could not read a historical source object",
+  openReviewFirst: "Open the Commit Reader first",
+  reviewStale: "The file changed, so this analysis was cancelled",
+  chooseRepository: "Choose a Git repository in the current workspace",
+  chooseCommit: "Choose a commit",
+  commitFilesChanged: "The commit files changed. Choose again",
+  sideChanged: "The commit side changed. Try again",
+  sideHasNoSource: "This side of the commit has no source",
+  analyzingRevision: "Analyzing the source at {revision}\u2026",
+  invalidSourcePosition: "Invalid source position",
+  libraryModule: "Library",
+  plainText: "Text",
+  toolbarLabel: "Code navigation",
+  backLabel: "Back to the previous location",
+  backTitle: "Back (\u2318[ / Ctrl+Alt+\u2190)",
+  forwardLabel: "Forward to the next location",
+  forwardTitle: "Forward (\u2318] / Ctrl+Alt+\u2192)",
+  definition: "Definition",
+  definitionTitle: "Go to definition (Cmd/Ctrl+B or F12)",
+  implementation: "Implementation",
+  implementationTitle: "Go to implementation (Cmd/Ctrl+Alt+B)",
+  references: "References",
+  referencesTitle: "Find references (Shift+F12)",
+  moreLabel: "More navigation actions",
+  moreTitle: "More actions",
+  typeDefinition: "Go to type",
+  quickDefinition: "Peek definition",
+  reconnect: "Reconnect language service",
+  findFileTitle: "Find a file by name or path (Cmd+Shift+O / Ctrl+Shift+N)",
+  findFile: "Find file",
+  syntaxPalette: "Code colors",
+  editorLabel: "Code editor",
+  connecting: "Connecting to JumpLens\u2026",
+  readOnlySource: "Read-only source",
+  sourcePreview: "Source preview",
+  readOnly: "Read-only",
+  closeSourcePreview: "Close source preview",
+  closeEsc: "Close (Esc)",
+  code: "Code",
+  choosePathTitle: "Choose the current file path",
+  multipleMatchesDetail: "The document content matches several project files",
+  multipleMatchesStatus: "Several files have this name. Choose the current file path",
+  cannotIdentify: "Could not identify the current file",
+  connected: "{language} \xB7 connected",
+  reconnecting: "Reconnecting\u2026",
+  reconnected: "{language} \xB7 reconnected",
+  files: "Files",
+  findingReferences: "Finding references\u2026",
+  findingImplementations: "Finding implementations\u2026",
+  findingDefinitions: "Finding definitions\u2026",
+  noResults: "No results. If the project is being analyzed for the first time, try again shortly",
+  chooseReference: "Choose a reference",
+  chooseImplementation: "Choose an implementation",
+  chooseType: "Choose a type",
+  chooseDeclaration: "Choose a declaration",
+  foundReferences: "Found {count} references",
+  foundImplementations: "Found {count} implementations",
+  foundTypes: "Found {count} types",
+  foundDeclarations: "Found {count} declarations",
+  readOnlyDependency: "Read-only dependency source",
+  targetRevealed: "Moved to the target",
+  choosePreview: "Choose a candidate to preview its source",
+  closePicker: "Close the candidate list",
+  searchFiles: "Search file name or path\u2026",
+  filterCandidates: "Filter by name, package or path\u2026",
+  filterLabel: "Filter navigation candidates",
+  candidatesLabel: "Navigation candidates",
+  candidatePreview: "Candidate code preview",
+  keySelect: "Select",
+  keyOpen: "Open",
+  keyClose: "Close",
+  pickerHint: "Type a path to tell files with the same name apart",
+  searching: "Searching\u2026",
+  searchFailed: "Search failed",
+  narrowHint: "Keep typing to narrow the results",
+  candidateCount: "{count} candidates",
+  noMatches: "No matching candidates. Change the filter",
+  nothingToPreview: "Nothing to preview",
+  loadingPreview: "Loading the source preview\u2026",
+  candidateSource: "Read-only candidate source",
+  previewFailed: "Cannot preview: {error}",
+  reviewDocumentTitle: "JumpLens Commit Reader",
+  commitReader: "Commit Reader",
+  gitRepository: "Git repository",
+  revisionLabel: "Commit hash or ref",
+  viewCommit: "View commit",
+  readingWorkspace: "Reading the workspace\u2026",
+  commitFilesLabel: "Files in this commit",
+  commitDiff: "Commit diff",
+  parentCommit: "Parent commit",
+  thisCommit: "This commit",
+  emptyHint: "Choose a commit and a file to read both sides",
+  reviewIdle: "Syntax colors show right away; Java symbol analysis finishes in the background",
+  previousChange: "Previous",
+  nextChange: "Next",
+  previewDialog: "Definition preview at this revision",
+  definitionPreview: "Definition preview",
+  definitionCandidates: "Definition candidates",
+  invalidReviewConfig: "Invalid reader settings. Using the current workspace",
+  findingRevisionDefinition: "Finding the definition at this revision\u2026",
+  noRevisionDefinition: "No definition to preview at this revision",
+  definitionFromSide: "The definition comes from this side's source at the same revision",
+  parentSource: "Read-only source of the parent commit",
+  commitSource: "Read-only source of this commit",
+  semanticReady: "Java semantic colors ready \xB7 Cmd/Ctrl+B shows the definition at this revision",
+  syntaxOnly: "Java syntax highlighting \xB7 Cmd/Ctrl+B shows the definition at this revision",
+  symbolsUnavailable: "Showing syntax highlighting; symbol analysis is unavailable: {error}",
+  readingCommitFile: "Reading the commit file\u2026",
+  sideMissing: "No file on this side",
+  changeCount: "{count} changes",
+  readOnlyDiff: "Read-only commit diff \xB7 Java symbol analysis finishes in the background \xB7 Cmd/Ctrl+B shows definitions",
+  readingCommit: "Reading the commit\u2026",
+  fileCount: "{count} files",
+  fileCountRoot: "{count} files \xB7 root commit",
+  noCommitChanges: "This commit has no file changes against its first parent",
+  noFileChanges: "No file changes",
+  noGitRepository: "The current workspace has no Git repository",
+  openInGitProject: "Open the Commit Reader in a Git project or in a folder workspace that contains repositories"
+};
+var ko = {
+  invalidRequest: "\uC694\uCCAD \uB9E4\uAC1C\uBCC0\uC218\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  invalidContent: "\uD30C\uC77C\uC774 \uB108\uBB34 \uD06C\uAC70\uB098 \uB0B4\uC6A9\uC774 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  noSession: "\uBA3C\uC800 \uD604\uC7AC \uD30C\uC77C\uC744 \uC778\uC2DD\uD558\uAC70\uB098 \uB2E4\uC2DC \uC5F0\uACB0\uC744 \uB204\uB974\uC138\uC694",
+  invalidNavigationPosition: "\uD0D0\uC0C9 \uC704\uCE58\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  targetOutsideWorkspace: "\uB300\uC0C1 \uD30C\uC77C\uC774 \uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4 \uBC16\uC5D0 \uC788\uC2B5\uB2C8\uB2E4",
+  identifyingFile: "\uD604\uC7AC \uD30C\uC77C\uC744 \uC778\uC2DD\uD558\uB294 \uC911\u2026",
+  staleAttach: "\uD30C\uC77C\uC774 \uBC14\uB00C\uC5B4 \uC774\uC804 \uD30C\uC77C \uC778\uC2DD\uC744 \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4",
+  readOnlyMismatch: "\uC774 \uC77D\uAE30 \uC804\uC6A9 \uC18C\uC2A4\uB294 \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4 \uBC84\uC804\uACFC \uB2E4\uB985\uB2C8\uB2E4. \uC774\uC804 \uBC84\uC804\uC740 JumpLens \uCEE4\uBC0B \uC77D\uAE30\uC5D0\uC11C \uC5EC\uC138\uC694",
+  sourceNotFound: "\uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uC5D0\uC11C \uD574\uB2F9 \uC18C\uC2A4 \uD30C\uC77C\uC744 \uCC3E\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uD30C\uC77C\uC744 \uC800\uC7A5\uD55C \uB4A4 \uB2E4\uC2DC \uC5F0\uACB0\uD558\uC138\uC694",
+  matchChanged: "\uD30C\uC77C \uC77C\uCE58 \uACB0\uACFC\uAC00 \uBC14\uB00C\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC120\uD0DD\uD558\uC138\uC694",
+  unsupportedTarget: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB300\uC0C1 \uBB38\uC11C \uD615\uC2DD\uC785\uB2C8\uB2E4",
+  candidatesChanged: "\uD604\uC7AC \uD30C\uC77C \uD6C4\uBCF4\uAC00 \uBC14\uB00C\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC120\uD0DD\uD558\uC138\uC694",
+  previewExpired: "\uBBF8\uB9AC\uBCF4\uAE30 \uB300\uC0C1\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC870\uD68C\uD558\uC138\uC694",
+  invalidFileQuery: "\uD30C\uC77C \uAC80\uC0C9 \uC870\uAC74\uC774 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  invalidJumpPosition: "\uC774\uB3D9 \uC704\uCE58\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  staleNavigation: "\uD30C\uC77C\uC774 \uBC14\uB00C\uC5B4 \uC774\uC804 \uD0D0\uC0C9 \uC870\uD68C\uB97C \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4",
+  targetNotInResults: "\uB300\uC0C1\uC774 \uC774\uBC88 \uD0D0\uC0C9 \uACB0\uACFC\uC5D0 \uC18D\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  invalidTargetPosition: "\uB300\uC0C1 \uC704\uCE58\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  unsupportedCurrentTarget: "\uD604\uC7AC \uB300\uC0C1\uC758 \uBB38\uC11C \uD615\uC2DD\uC740 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  invalidDirection: "\uD0D0\uC0C9 \uBC29\uD5A5\uC774 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  downloadFailed: "\uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328(HTTP {status}): {url}",
+  downloadTooLarge: "\uB2E4\uC6B4\uB85C\uB4DC \uD30C\uC77C\uC774 \uD06C\uAE30 \uC81C\uD55C\uC744 \uB118\uC5C8\uC2B5\uB2C8\uB2E4",
+  downloading: "\uC2E4\uD589 \uAD6C\uC131 \uC694\uC18C\uB97C \uB0B4\uB824\uBC1B\uB294 \uC911: {received} MB",
+  downloadingWithTotal: "\uC2E4\uD589 \uAD6C\uC131 \uC694\uC18C\uB97C \uB0B4\uB824\uBC1B\uB294 \uC911: {received} MB / {total} MB",
+  checksumFailed: "\uB2E4\uC6B4\uB85C\uB4DC \uAC80\uC99D\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
+  extracting: "\uAC80\uC99D\uC744 \uD1B5\uACFC\uD588\uC2B5\uB2C8\uB2E4. \uC2E4\uD589 \uAD6C\uC131 \uC694\uC18C\uC758 \uC555\uCD95\uC744 \uD478\uB294 \uC911\u2026",
+  javaHomeInvalid: "\uC5B8\uC5B4 \uC11C\uBC84 JDK\uB294 Java 25 \uC774\uC0C1\uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4. \uD50C\uB7EC\uADF8\uC778 \uC124\uC815\uC744 \uD655\uC778\uD558\uC138\uC694",
+  platformUnsupported: "\uD50C\uB7EC\uADF8\uC778 \uC124\uC815\uC5D0\uC11C Java 25 \uC124\uCE58 \uB514\uB809\uD130\uB9AC\uB97C \uC9C0\uC815\uD558\uC138\uC694",
+  preparingJava: "\uCC98\uC74C \uC0AC\uC6A9: Java \uC5B8\uC5B4 \uC11C\uBE44\uC2A4 \uC2E4\uD589 \uD658\uACBD\uC744 \uC900\uBE44\uD558\uB294 \uC911\u2026",
+  javaMetadataFailed: "Java \uC2E4\uD589 \uD658\uACBD \uC815\uBCF4\uB97C \uC77D\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4(HTTP {status})",
+  javaMetadataInvalid: "Java \uC2E4\uD589 \uD658\uACBD \uB2E4\uC6B4\uB85C\uB4DC \uC815\uBCF4\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  javaInstallFailed: "Java \uC2E4\uD589 \uD658\uACBD \uC124\uCE58\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4",
+  jdtlsPluginsMissing: "JDT LS \uB514\uB809\uD130\uB9AC\uC5D0 plugins \uD3F4\uB354\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uD50C\uB7EC\uADF8\uC778 \uC124\uC815\uC744 \uD655\uC778\uD558\uC138\uC694",
+  preparingJdtls: "\uCC98\uC74C \uC0AC\uC6A9: Java \uC5B8\uC5B4 \uC11C\uBC84\uB97C \uC900\uBE44\uD558\uB294 \uC911\u2026",
+  jdtlsChecksumUnavailable: "JDT LS \uCCB4\uD06C\uC12C \uC815\uBCF4\uB97C \uC77D\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
+  jdtlsChecksumInvalid: "JDT LS \uCCB4\uD06C\uC12C \uC815\uBCF4\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  projectJdkUnknown: "\uD504\uB85C\uC81D\uD2B8 JDK \uBC84\uC804\uC744 \uD655\uC778\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uD50C\uB7EC\uADF8\uC778 \uC124\uC815\uC758 \uD504\uB85C\uC81D\uD2B8 JDK \uB514\uB809\uD130\uB9AC\uB97C \uD655\uC778\uD558\uC138\uC694",
+  preparingLombok: "Lombok \uBD84\uC11D \uC9C0\uC6D0\uC744 \uC900\uBE44\uD558\uB294 \uC911\u2026",
+  javaRuntimeReady: "Java \uC2E4\uD589 \uD658\uACBD \uC900\uBE44 \uC644\uB8CC",
+  javaStopped: "Java \uC5B8\uC5B4 \uC11C\uBE44\uC2A4\uAC00 \uC911\uC9C0\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
+  jdtlsLauncherMissing: "JDT LS\uC5D0 \uC2E4\uD589 \uAD6C\uC131 \uC694\uC18C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+  jdtlsConfigMissing: "JDT LS\uC5D0 \uD604\uC7AC \uD50C\uB7AB\uD3FC \uC124\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+  javaStarting: "Java \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC2DC\uC791\uD558\uB294 \uC911\u2026",
+  javaReady: "Java \uBD84\uC11D \uC900\uBE44 \uC644\uB8CC",
+  javaAnalyzing: "Java \uD504\uB85C\uC81D\uD2B8\uB97C \uBD84\uC11D\uD558\uB294 \uC911\u2026",
+  javaStartFailed: "Java \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: {error}",
+  javaUnavailable: "Java \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+  javaUnavailableDetail: "Java \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {detail}",
+  requestCancelled: "\uC694\uCCAD\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+  finishingAnalysis: "\uD504\uB85C\uC81D\uD2B8 \uBD84\uC11D\uC744 \uB9C8\uBB34\uB9AC\uD558\uB294 \uC911\uC785\uB2C8\uB2E4. \uC7A0\uC2DC \uAE30\uB2E4\uB824 \uC8FC\uC138\uC694\u2026",
+  webStarting: "Vue / TypeScript \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC2DC\uC791\uD558\uB294 \uC911\u2026",
+  webReady: "Vue / TypeScript \xB7 \uBD84\uC11D \uC900\uBE44 \uC644\uB8CC",
+  webStartFailed: "Vue / TS \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: {error}",
+  webUnavailable: "Vue / TS \uBD84\uC11D \uC11C\uBE44\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {detail}",
+  webStopped: "Vue / TS \uBD84\uC11D \uC11C\uBE44\uC2A4\uAC00 \uC911\uC9C0\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC5F0\uACB0\uD558\uC138\uC694",
+  diskPreviewOnly: "\uC774 \uC5B8\uC5B4 \uC11C\uBE44\uC2A4\uB294 \uB514\uC2A4\uD06C\uC5D0 \uC788\uB294 \uC18C\uC2A4\uC758 \uBBF8\uB9AC\uBCF4\uAE30\uB9CC \uC81C\uACF5\uD569\uB2C8\uB2E4",
+  workspaceUnreadable: "Orca \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uB97C \uC77D\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
+  selectWorkspace: "\uBA3C\uC800 Orca\uC5D0\uC11C \uD604\uC7AC \uD504\uB85C\uC81D\uD2B8\uC758 \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uB97C \uC120\uD0DD\uD558\uC138\uC694",
+  localOnly: "\uCF54\uB4DC \uD0D0\uC0C9\uC740 \uD604\uC7AC \uB85C\uCEEC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uB9CC \uC9C0\uC6D0\uD569\uB2C8\uB2E4",
+  workspaceAddressUnavailable: "\uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4 \uC8FC\uC18C\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+  invalidWorkspaceId: "\uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4 \uC2DD\uBCC4\uC790\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  reviewWorkspaceUnavailable: "\uCEE4\uBC0B \uC77D\uAE30\uC6A9 \uB85C\uCEEC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+  tooManyFiles: "\uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uC758 \uC18C\uC2A4 \uD30C\uC77C\uC774 \uB108\uBB34 \uB9CE\uC2B5\uB2C8\uB2E4. \uD2B9\uC815 \uD504\uB85C\uC81D\uD2B8\uB97C \uC5F0 \uB4A4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
+  unsupportedFile: "\uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4 \uC548\uC758 Java, Vue \uB610\uB294 JS/TS \uD30C\uC77C\uC744 \uC120\uD0DD\uD558\uC138\uC694",
+  gitListIncomplete: "Git \uD30C\uC77C \uBAA9\uB85D\uC774 \uBD88\uC644\uC804\uD569\uB2C8\uB2E4",
+  gitRenameIncomplete: "Git \uC774\uB984 \uBCC0\uACBD \uAE30\uB85D\uC774 \uBD88\uC644\uC804\uD569\uB2C8\uB2E4",
+  invalidRevision: "\uCEE4\uBC0B \uC2DD\uBCC4\uC790\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  binaryFile: "\uBC14\uC774\uB108\uB9AC \uD30C\uC77C\uC774\uB77C \uC18C\uC2A4\uB85C \uD45C\uC2DC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+  fullHashRequired: "\uC774\uC804 \uBC84\uC804 \uBD84\uC11D\uC5D0\uB294 \uC804\uCCB4 \uCEE4\uBC0B \uD574\uC2DC\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4",
+  invalidHistoryPath: "\uC774\uC804 \uBC84\uC804 \uC18C\uC2A4 \uACBD\uB85C\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  historyTooLarge: "\uC774\uC804 \uBC84\uC804 \uD504\uB85C\uC81D\uD2B8 \uC18C\uC2A4\uAC00 \uBD84\uC11D \uCE90\uC2DC \uD55C\uB3C4\uB97C \uB118\uC5C8\uC2B5\uB2C8\uB2E4. \uAD6C\uBB38 \uAC15\uC870\uB85C\uB294 \uACC4\uC18D \uC77D\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4",
+  historyObjectFailed: "\uC774\uC804 \uBC84\uC804 \uC18C\uC2A4 \uAC1D\uCCB4\uB97C \uC77D\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
+  openReviewFirst: "\uBA3C\uC800 \uCEE4\uBC0B \uC77D\uAE30\uB97C \uC5EC\uC138\uC694",
+  reviewStale: "\uD30C\uC77C\uC774 \uBC14\uB00C\uC5B4 \uD604\uC7AC \uBD84\uC11D\uC744 \uCDE8\uC18C\uD588\uC2B5\uB2C8\uB2E4",
+  chooseRepository: "\uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uC758 Git \uC800\uC7A5\uC18C\uB97C \uC120\uD0DD\uD558\uC138\uC694",
+  chooseCommit: "\uCEE4\uBC0B\uC744 \uC120\uD0DD\uD558\uC138\uC694",
+  commitFilesChanged: "\uCEE4\uBC0B \uD30C\uC77C\uC774 \uBC14\uB00C\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC120\uD0DD\uD558\uC138\uC694",
+  sideChanged: "\uCEE4\uBC0B \uCABD\uC774 \uBC14\uB00C\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
+  sideHasNoSource: "\uC774 \uCEE4\uBC0B \uCABD\uC5D0\uB294 \uC18C\uC2A4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+  analyzingRevision: "{revision}\uC758 \uC18C\uC2A4\uB97C \uBD84\uC11D\uD558\uB294 \uC911\u2026",
+  invalidSourcePosition: "\uC18C\uC2A4 \uC704\uCE58\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+  libraryModule: "\uB77C\uC774\uBE0C\uB7EC\uB9AC",
+  plainText: "\uD14D\uC2A4\uD2B8",
+  toolbarLabel: "\uCF54\uB4DC \uD0D0\uC0C9",
+  backLabel: "\uC774\uC804 \uC704\uCE58\uB85C \uB3CC\uC544\uAC00\uAE30",
+  backTitle: "\uB4A4\uB85C(\u2318[ / Ctrl+Alt+\u2190)",
+  forwardLabel: "\uB2E4\uC74C \uC704\uCE58\uB85C \uC774\uB3D9",
+  forwardTitle: "\uC55E\uC73C\uB85C(\u2318] / Ctrl+Alt+\u2192)",
+  definition: "\uC815\uC758",
+  definitionTitle: "\uC815\uC758\uB85C \uC774\uB3D9(Cmd/Ctrl+B \uB610\uB294 F12)",
+  implementation: "\uAD6C\uD604",
+  implementationTitle: "\uAD6C\uD604\uC73C\uB85C \uC774\uB3D9(Cmd/Ctrl+Alt+B)",
+  references: "\uCC38\uC870",
+  referencesTitle: "\uCC38\uC870 \uCC3E\uAE30(Shift+F12)",
+  moreLabel: "\uD0D0\uC0C9 \uC791\uC5C5 \uB354\uBCF4\uAE30",
+  moreTitle: "\uC791\uC5C5 \uB354\uBCF4\uAE30",
+  typeDefinition: "\uD0C0\uC785\uC73C\uB85C \uC774\uB3D9",
+  quickDefinition: "\uC815\uC758 \uBBF8\uB9AC\uBCF4\uAE30",
+  reconnect: "\uC5B8\uC5B4 \uC11C\uBE44\uC2A4 \uB2E4\uC2DC \uC5F0\uACB0",
+  findFileTitle: "\uC774\uB984\uC774\uB098 \uACBD\uB85C\uB85C \uD30C\uC77C \uCC3E\uAE30(Cmd+Shift+O / Ctrl+Shift+N)",
+  findFile: "\uD30C\uC77C \uCC3E\uAE30",
+  syntaxPalette: "\uCF54\uB4DC \uC0C9\uC0C1",
+  editorLabel: "\uCF54\uB4DC \uD3B8\uC9D1\uAE30",
+  connecting: "JumpLens\uC5D0 \uC5F0\uACB0\uD558\uB294 \uC911\u2026",
+  readOnlySource: "\uC77D\uAE30 \uC804\uC6A9 \uC18C\uC2A4",
+  sourcePreview: "\uC18C\uC2A4 \uBBF8\uB9AC\uBCF4\uAE30",
+  readOnly: "\uC77D\uAE30 \uC804\uC6A9",
+  closeSourcePreview: "\uC18C\uC2A4 \uBBF8\uB9AC\uBCF4\uAE30 \uB2EB\uAE30",
+  closeEsc: "\uB2EB\uAE30(Esc)",
+  code: "\uCF54\uB4DC",
+  choosePathTitle: "\uD604\uC7AC \uD30C\uC77C \uACBD\uB85C \uC120\uD0DD",
+  multipleMatchesDetail: "\uBB38\uC11C \uB0B4\uC6A9\uC774 \uC5EC\uB7EC \uD504\uB85C\uC81D\uD2B8 \uD30C\uC77C\uACFC \uC77C\uCE58\uD569\uB2C8\uB2E4",
+  multipleMatchesStatus: "\uAC19\uC740 \uC774\uB984\uC758 \uD30C\uC77C\uC774 \uC5EC\uB7EC \uAC1C \uC788\uC2B5\uB2C8\uB2E4. \uD604\uC7AC \uD30C\uC77C \uACBD\uB85C\uB97C \uC120\uD0DD\uD558\uC138\uC694",
+  cannotIdentify: "\uD604\uC7AC \uD30C\uC77C\uC744 \uC778\uC2DD\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
+  connected: "{language} \xB7 \uC5F0\uACB0\uB428",
+  reconnecting: "\uB2E4\uC2DC \uC5F0\uACB0\uD558\uB294 \uC911\u2026",
+  reconnected: "{language} \xB7 \uB2E4\uC2DC \uC5F0\uACB0\uB428",
+  files: "\uD30C\uC77C",
+  findingReferences: "\uCC38\uC870\uB97C \uCC3E\uB294 \uC911\u2026",
+  findingImplementations: "\uAD6C\uD604\uC744 \uCC3E\uB294 \uC911\u2026",
+  findingDefinitions: "\uC815\uC758\uB97C \uCC3E\uB294 \uC911\u2026",
+  noResults: "\uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uD504\uB85C\uC81D\uD2B8\uB97C \uCC98\uC74C \uBD84\uC11D\uD558\uB294 \uC911\uC774\uBA74 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694",
+  chooseReference: "\uCC38\uC870 \uC120\uD0DD",
+  chooseImplementation: "\uAD6C\uD604 \uC120\uD0DD",
+  chooseType: "\uD0C0\uC785 \uC120\uD0DD",
+  chooseDeclaration: "\uC120\uC5B8 \uC120\uD0DD",
+  foundReferences: "\uCC38\uC870 {count}\uAC1C\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4",
+  foundImplementations: "\uAD6C\uD604 {count}\uAC1C\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4",
+  foundTypes: "\uD0C0\uC785 {count}\uAC1C\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4",
+  foundDeclarations: "\uC120\uC5B8 {count}\uAC1C\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4",
+  readOnlyDependency: "\uC77D\uAE30 \uC804\uC6A9 \uC758\uC874\uC131 \uC18C\uC2A4",
+  targetRevealed: "\uB300\uC0C1\uC73C\uB85C \uC774\uB3D9\uD588\uC2B5\uB2C8\uB2E4",
+  choosePreview: "\uD6C4\uBCF4\uB97C \uC120\uD0DD\uD558\uBA74 \uC18C\uC2A4\uB97C \uBBF8\uB9AC \uBD05\uB2C8\uB2E4",
+  closePicker: "\uD6C4\uBCF4 \uBAA9\uB85D \uB2EB\uAE30",
+  searchFiles: "\uD30C\uC77C \uC774\uB984\uC774\uB098 \uACBD\uB85C \uAC80\uC0C9\u2026",
+  filterCandidates: "\uC774\uB984, \uD328\uD0A4\uC9C0, \uACBD\uB85C\uB85C \uD544\uD130\u2026",
+  filterLabel: "\uD0D0\uC0C9 \uD6C4\uBCF4 \uD544\uD130",
+  candidatesLabel: "\uD0D0\uC0C9 \uD6C4\uBCF4",
+  candidatePreview: "\uD6C4\uBCF4 \uCF54\uB4DC \uBBF8\uB9AC\uBCF4\uAE30",
+  keySelect: "\uC120\uD0DD",
+  keyOpen: "\uC5F4\uAE30",
+  keyClose: "\uB2EB\uAE30",
+  pickerHint: "\uACBD\uB85C\uB97C \uC785\uB825\uD558\uBA74 \uAC19\uC740 \uC774\uB984\uC758 \uD30C\uC77C\uC744 \uAD6C\uBD84\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4",
+  searching: "\uAC80\uC0C9\uD558\uB294 \uC911\u2026",
+  searchFailed: "\uAC80\uC0C9 \uC2E4\uD328",
+  narrowHint: "\uACC4\uC18D \uC785\uB825\uD558\uBA74 \uBC94\uC704\uB97C \uC881\uD790 \uC218 \uC788\uC2B5\uB2C8\uB2E4",
+  candidateCount: "\uD6C4\uBCF4 {count}\uAC1C",
+  noMatches: "\uC77C\uCE58\uD558\uB294 \uD6C4\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uD544\uD130\uB97C \uBC14\uAFB8\uC138\uC694",
+  nothingToPreview: "\uBBF8\uB9AC \uBCFC \uD6C4\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+  loadingPreview: "\uC18C\uC2A4 \uBBF8\uB9AC\uBCF4\uAE30\uB97C \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+  candidateSource: "\uD6C4\uBCF4 \uC77D\uAE30 \uC804\uC6A9 \uC18C\uC2A4",
+  previewFailed: "\uBBF8\uB9AC \uBCFC \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {error}",
+  reviewDocumentTitle: "JumpLens \uCEE4\uBC0B \uC77D\uAE30",
+  commitReader: "\uCEE4\uBC0B \uC77D\uAE30",
+  gitRepository: "Git \uC800\uC7A5\uC18C",
+  revisionLabel: "\uCEE4\uBC0B \uD574\uC2DC \uB610\uB294 ref",
+  viewCommit: "\uCEE4\uBC0B \uBCF4\uAE30",
+  readingWorkspace: "\uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uB97C \uC77D\uB294 \uC911\u2026",
+  commitFilesLabel: "\uC774 \uCEE4\uBC0B\uC758 \uD30C\uC77C",
+  commitDiff: "\uCEE4\uBC0B \uBCC0\uACBD \uC0AC\uD56D",
+  parentCommit: "\uBD80\uBAA8 \uCEE4\uBC0B",
+  thisCommit: "\uC774 \uCEE4\uBC0B",
+  emptyHint: "\uCEE4\uBC0B\uACFC \uD30C\uC77C\uC744 \uC120\uD0DD\uD558\uBA74 \uC591\uCABD \uC18C\uC2A4\uB97C \uC77D\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4",
+  reviewIdle: "\uAD6C\uBB38 \uC0C9\uC0C1\uC740 \uBC14\uB85C \uD45C\uC2DC\uB418\uACE0, Java \uC2EC\uBCFC \uBD84\uC11D\uC740 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uB05D\uB0A9\uB2C8\uB2E4",
+  previousChange: "\uC774\uC804",
+  nextChange: "\uB2E4\uC74C",
+  previewDialog: "\uAC19\uC740 \uBC84\uC804 \uC815\uC758 \uBBF8\uB9AC\uBCF4\uAE30",
+  definitionPreview: "\uC815\uC758 \uBBF8\uB9AC\uBCF4\uAE30",
+  definitionCandidates: "\uC815\uC758 \uD6C4\uBCF4",
+  invalidReviewConfig: "\uC77D\uAE30 \uC124\uC815\uC774 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC544 \uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4",
+  findingRevisionDefinition: "\uAC19\uC740 \uBC84\uC804\uC758 \uC815\uC758\uB97C \uCC3E\uB294 \uC911\u2026",
+  noRevisionDefinition: "\uC774 \uBC84\uC804\uC5D0\uB294 \uBBF8\uB9AC \uBCFC \uC815\uC758\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+  definitionFromSide: "\uC815\uC758\uB294 \uD604\uC7AC \uCEE4\uBC0B \uCABD\uC758 \uAC19\uC740 \uBC84\uC804 \uC18C\uC2A4\uC5D0\uC11C \uAC00\uC838\uC654\uC2B5\uB2C8\uB2E4",
+  parentSource: "\uBD80\uBAA8 \uCEE4\uBC0B \uC77D\uAE30 \uC804\uC6A9 \uC18C\uC2A4",
+  commitSource: "\uC774 \uCEE4\uBC0B \uC77D\uAE30 \uC804\uC6A9 \uC18C\uC2A4",
+  semanticReady: "Java \uC758\uBBF8 \uC0C9\uC0C1 \uC900\uBE44 \uC644\uB8CC \xB7 Cmd/Ctrl+B\uB85C \uAC19\uC740 \uBC84\uC804 \uC815\uC758 \uBCF4\uAE30",
+  syntaxOnly: "Java \uAD6C\uBB38 \uAC15\uC870 \xB7 Cmd/Ctrl+B\uB85C \uAC19\uC740 \uBC84\uC804 \uC815\uC758 \uBCF4\uAE30",
+  symbolsUnavailable: "\uAD6C\uBB38 \uAC15\uC870\uB97C \uD45C\uC2DC\uD588\uC2B5\uB2C8\uB2E4. \uC2EC\uBCFC \uBD84\uC11D\uC740 \uC9C0\uAE08 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {error}",
+  readingCommitFile: "\uCEE4\uBC0B \uD30C\uC77C\uC744 \uC77D\uB294 \uC911\u2026",
+  sideMissing: "\uC774\uCABD\uC5D0\uB294 \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+  changeCount: "\uBCC0\uACBD {count}\uACF3",
+  readOnlyDiff: "\uC77D\uAE30 \uC804\uC6A9 \uCEE4\uBC0B \uBCC0\uACBD \uC0AC\uD56D \xB7 Java \uC2EC\uBCFC \uBD84\uC11D\uC740 \uBC31\uADF8\uB77C\uC6B4\uB4DC\uC5D0\uC11C \uB05D\uB0A9\uB2C8\uB2E4 \xB7 Cmd/Ctrl+B\uB85C \uC815\uC758 \uBCF4\uAE30",
+  readingCommit: "\uCEE4\uBC0B\uC744 \uC77D\uB294 \uC911\u2026",
+  fileCount: "\uD30C\uC77C {count}\uAC1C",
+  fileCountRoot: "\uD30C\uC77C {count}\uAC1C \xB7 \uB8E8\uD2B8 \uCEE4\uBC0B",
+  noCommitChanges: "\uC774 \uCEE4\uBC0B\uC5D0\uB294 \uCCAB \uBC88\uC9F8 \uBD80\uBAA8 \uB300\uBE44 \uD30C\uC77C \uBCC0\uACBD\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+  noFileChanges: "\uD30C\uC77C \uBCC0\uACBD \uC5C6\uC74C",
+  noGitRepository: "\uD604\uC7AC \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uC5D0 Git \uC800\uC7A5\uC18C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+  openInGitProject: "Git \uD504\uB85C\uC81D\uD2B8\uB098 \uC800\uC7A5\uC18C\uB97C \uD3EC\uD568\uD55C \uD3F4\uB354 \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4\uC5D0\uC11C \uCEE4\uBC0B \uC77D\uAE30\uB97C \uC5EC\uC138\uC694"
+};
+var messages = { zh, en, ko };
+function resolveLocale(tag) {
+  const language = tag?.trim().toLowerCase().split(/[-_]/)[0];
+  if (!language || language === "zh") return "zh";
+  return language === "ko" ? "ko" : "en";
+}
+var current = "zh";
+function setLocale(tag) {
+  current = resolveLocale(tag);
+  return current;
+}
+function t(key, params) {
+  const template = messages[current][key];
+  return params ? template.replace(/\{(\w+)\}/g, (match, name) => name in params ? String(params[name]) : match) : template;
+}
+
+// src/runtime.ts
 var run = promisify(execFile);
 var CACHE = path.join(homedir(), ".cache", "orca-java-navigation");
 var JDT_VERSION = "1.63.0";
@@ -3318,23 +3917,23 @@ async function exists(file) {
 }
 async function download(url, destination, sha256, progress) {
   const response = await fetch(url, { signal: AbortSignal.timeout(6e5) });
-  if (!response.ok || !response.body) throw new Error(`\u4E0B\u8F7D\u5931\u8D25\uFF08HTTP ${response.status}\uFF09\uFF1A${url}`);
+  if (!response.ok || !response.body) throw new Error(t("downloadFailed", { status: response.status, url }));
   const size = Number(response.headers.get("content-length"));
   const hash = createHash("sha256");
   let received = 0;
   let lastUpdate = 0;
   const meter = new Transform({ transform(chunk, _encoding, callback) {
     received += chunk.length;
-    if (received > 600 * 1024 * 1024) return callback(new Error("\u4E0B\u8F7D\u6587\u4EF6\u8D85\u51FA\u5927\u5C0F\u9650\u5236"));
+    if (received > 600 * 1024 * 1024) return callback(new Error(t("downloadTooLarge")));
     hash.update(chunk);
     if (Date.now() - lastUpdate > 1e3) {
       lastUpdate = Date.now();
-      progress(`\u6B63\u5728\u4E0B\u8F7D\u8FD0\u884C\u7EC4\u4EF6\uFF1A${Math.round(received / 1024 / 1024)} MB${size ? ` / ${Math.round(size / 1024 / 1024)} MB` : ""}`);
+      progress(size ? t("downloadingWithTotal", { received: Math.round(received / 1024 / 1024), total: Math.round(size / 1024 / 1024) }) : t("downloading", { received: Math.round(received / 1024 / 1024) }));
     }
     callback(null, chunk);
   } });
   await pipeline(Readable.fromWeb(response.body), meter, createWriteStream(destination, { flags: "wx" }));
-  if (hash.digest("hex") !== sha256.toLowerCase()) throw new Error("\u4E0B\u8F7D\u6821\u9A8C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+  if (hash.digest("hex") !== sha256.toLowerCase()) throw new Error(t("checksumFailed"));
 }
 async function extract(url, checksum, destination, progress) {
   await mkdir(CACHE, { recursive: true });
@@ -3343,7 +3942,7 @@ async function extract(url, checksum, destination, progress) {
   await mkdir(staging, { recursive: true });
   try {
     await download(url, archive, checksum, progress);
-    progress("\u6821\u9A8C\u901A\u8FC7\uFF0C\u6B63\u5728\u89E3\u538B\u8FD0\u884C\u7EC4\u4EF6\u2026");
+    progress(t("extracting"));
     await run("tar", ["-xzf", archive, "-C", staging], { timeout: 12e4 });
     try {
       await rename(staging, destination);
@@ -3380,7 +3979,7 @@ async function validJava(file) {
 async function ensureJava(settings, progress) {
   if (settings.javaHome) {
     const java2 = await findJava(settings.javaHome);
-    if (!java2 || !await validJava(java2)) throw new Error("\u8BED\u8A00\u670D\u52A1\u5668 JDK \u9700\u8981 Java 25 \u6216\u66F4\u9AD8\u7248\u672C\uFF0C\u8BF7\u68C0\u67E5\u63D2\u4EF6\u8BBE\u7F6E");
+    if (!java2 || !await validJava(java2)) throw new Error(t("javaHomeInvalid"));
     return java2;
   }
   const cached = path.join(CACHE, "jdk-25");
@@ -3399,16 +3998,16 @@ async function ensureJava(settings, progress) {
   for (const java2 of candidates) if (java2 && await validJava(java2)) return java2;
   const os = process.platform === "darwin" ? "mac" : process.platform === "linux" ? "linux" : null;
   const architecture = process.arch === "arm64" ? "aarch64" : process.arch === "x64" ? "x64" : null;
-  if (!os || !architecture) throw new Error("\u8BF7\u5728\u63D2\u4EF6\u8BBE\u7F6E\u4E2D\u6307\u5B9A Java 25 \u7684\u5B89\u88C5\u76EE\u5F55");
-  progress("\u9996\u6B21\u4F7F\u7528\uFF1A\u51C6\u5907 Java \u8BED\u8A00\u670D\u52A1\u8FD0\u884C\u73AF\u5883\u2026");
+  if (!os || !architecture) throw new Error(t("platformUnsupported"));
+  progress(t("preparingJava"));
   const response = await fetch(`https://api.adoptium.net/v3/assets/latest/25/hotspot?architecture=${architecture}&image_type=jdk&os=${os}&vendor=eclipse`, { signal: AbortSignal.timeout(3e4) });
-  if (!response.ok) throw new Error(`\u65E0\u6CD5\u8BFB\u53D6 Java \u8FD0\u884C\u73AF\u5883\u4FE1\u606F\uFF08HTTP ${response.status}\uFF09`);
+  if (!response.ok) throw new Error(t("javaMetadataFailed", { status: response.status }));
   const assets = await response.json();
   const pkg = assets[0]?.binary.package;
-  if (!pkg || !pkg.link.startsWith("https://github.com/adoptium/") || !/^[a-f\d]{64}$/i.test(pkg.checksum)) throw new Error("Java \u8FD0\u884C\u73AF\u5883\u4E0B\u8F7D\u4FE1\u606F\u65E0\u6548");
+  if (!pkg || !pkg.link.startsWith("https://github.com/adoptium/") || !/^[a-f\d]{64}$/i.test(pkg.checksum)) throw new Error(t("javaMetadataInvalid"));
   await extract(pkg.link, pkg.checksum, cached, progress);
   const java = await findJava(cached);
-  if (!java || !await validJava(java)) throw new Error("Java \u8FD0\u884C\u73AF\u5883\u5B89\u88C5\u5931\u8D25");
+  if (!java || !await validJava(java)) throw new Error(t("javaInstallFailed"));
   return java;
 }
 async function ensureRuntime(settings = {}, progress = () => {
@@ -3416,12 +4015,12 @@ async function ensureRuntime(settings = {}, progress = () => {
   const java = await ensureJava(settings, progress);
   const server = settings.languageServerHome || path.join(CACHE, `jdtls-${JDT_VERSION}`);
   if (!await exists(path.join(server, "plugins"))) {
-    if (settings.languageServerHome) throw new Error("JDT LS \u76EE\u5F55\u4E2D\u7F3A\u5C11 plugins\uFF0C\u8BF7\u68C0\u67E5\u63D2\u4EF6\u8BBE\u7F6E");
-    progress("\u9996\u6B21\u4F7F\u7528\uFF1A\u51C6\u5907 Java \u8BED\u8A00\u670D\u52A1\u5668\u2026");
+    if (settings.languageServerHome) throw new Error(t("jdtlsPluginsMissing"));
+    progress(t("preparingJdtls"));
     const response = await fetch(`${JDT_URL}.sha256`, { signal: AbortSignal.timeout(3e4) });
-    if (!response.ok) throw new Error("\u65E0\u6CD5\u8BFB\u53D6 JDT LS \u6821\u9A8C\u4FE1\u606F");
+    if (!response.ok) throw new Error(t("jdtlsChecksumUnavailable"));
     const checksum = (await response.text()).match(/\b[a-f\d]{64}\b/i)?.[0];
-    if (!checksum) throw new Error("JDT LS \u6821\u9A8C\u4FE1\u606F\u65E0\u6548");
+    if (!checksum) throw new Error(t("jdtlsChecksumInvalid"));
     await extract(JDT_URL, checksum, server, progress);
   }
   let projectJavaHome = settings.projectJavaHome;
@@ -3439,12 +4038,12 @@ async function ensureRuntime(settings = {}, progress = () => {
       const version = await run(path.join(projectJavaHome, "bin/java"), ["-version"], { timeout: 1e4 });
       major = `${version.stderr}${version.stdout}`.match(/version "(1\.8|\d+)/)?.[1];
     }
-    if (!major) throw new Error("\u65E0\u6CD5\u8BC6\u522B\u9879\u76EE JDK \u7248\u672C\uFF0C\u8BF7\u68C0\u67E5\u63D2\u4EF6\u8BBE\u7F6E\u4E2D\u7684\u9879\u76EE JDK \u76EE\u5F55");
+    if (!major) throw new Error(t("projectJdkUnknown"));
     projectJavaName = `JavaSE-${major}`;
   }
   const lombok = path.join(CACHE, "lombok-1.18.42.jar");
   if (!await exists(lombok)) {
-    progress("\u6B63\u5728\u51C6\u5907 Lombok \u5206\u6790\u652F\u6301\u2026");
+    progress(t("preparingLombok"));
     const temporary = `${lombok}.${randomUUID()}.part`;
     try {
       await download("https://repo.maven.apache.org/maven2/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar", temporary, "3488a4e9994c26596baaceebee58cad36a50e3bdaec5be72b5834d3c3b560306", progress);
@@ -3453,7 +4052,7 @@ async function ensureRuntime(settings = {}, progress = () => {
       await rm(temporary, { force: true });
     }
   }
-  progress("Java \u8FD0\u884C\u73AF\u5883\u5DF2\u5C31\u7EEA");
+  progress(t("javaRuntimeReady"));
   return { java, server, projectJavaHome, projectJavaName, lombok };
 }
 
@@ -3484,20 +4083,20 @@ var RG = bundled("ripgrep", `${process.platform}-${process.arch}`, "rg") ?? "rg"
 async function activeWorkspace() {
   const { stdout } = await run(CLI, ["worktree", "ps", "--limit", "10000", "--json"], { timeout: 12e3, maxBuffer: 16 * 1024 * 1024 });
   const response = JSON.parse(stdout);
-  if (!response.ok) throw new Error(response.error?.message ?? "\u65E0\u6CD5\u8BFB\u53D6 Orca \u5DE5\u4F5C\u533A");
+  if (!response.ok) throw new Error(response.error?.message ?? t("workspaceUnreadable"));
   const active = response.result.worktrees.filter((row2) => row2.isActive);
-  if (active.length !== 1) throw new Error("\u8BF7\u5148\u5728 Orca \u4E2D\u9009\u62E9\u5F53\u524D\u5DE5\u7A0B\u7684\u5DE5\u4F5C\u533A");
+  if (active.length !== 1) throw new Error(t("selectWorkspace"));
   const row = active[0];
-  if (row.hostId && row.hostId !== "local" || row.address?.environment !== "local") throw new Error("\u4EE3\u7801\u5BFC\u822A\u76EE\u524D\u652F\u6301\u672C\u673A\u5DE5\u4F5C\u533A");
-  if (!row.address?.worktree) throw new Error("\u5F53\u524D\u5DE5\u4F5C\u533A\u5730\u5740\u4E0D\u53EF\u7528");
+  if (row.hostId && row.hostId !== "local" || row.address?.environment !== "local") throw new Error(t("localOnly"));
+  if (!row.address?.worktree) throw new Error(t("workspaceAddressUnavailable"));
   return { root: await realpath(row.path), selector: row.address.worktree };
 }
 async function workspaceBySelector(selector) {
-  if (!selector || selector.length > 2e3 || selector.includes("\0")) throw new Error("\u5DE5\u4F5C\u533A\u6807\u8BC6\u65E0\u6548");
+  if (!selector || selector.length > 2e3 || selector.includes("\0")) throw new Error(t("invalidWorkspaceId"));
   const { stdout } = await run(CLI, ["worktree", "show", "--worktree", selector, "--json"], { timeout: 12e3, maxBuffer: 1024 * 1024 });
   const response = JSON.parse(stdout);
   const row = response.result?.worktree;
-  if (!response.ok || !row || row.hostId && row.hostId !== "local" || row.address?.environment !== "local") throw new Error("\u63D0\u4EA4\u9605\u8BFB\u7684\u672C\u673A\u5DE5\u4F5C\u533A\u4E0D\u53EF\u7528");
+  if (!response.ok || !row || row.hostId && row.hostId !== "local" || row.address?.environment !== "local") throw new Error(t("reviewWorkspaceUnavailable"));
   return { root: await realpath(row.path), selector: row.address.worktree };
 }
 function inside(root, file) {
@@ -3521,7 +4120,7 @@ async function matchDocument(root, text, exactOnly = false) {
   const identity = sourceIdentity(text);
   const java = /^\s*(?:package\s+[\w.]+\s*;|import\s+(?:static\s+)?[\w.*]+\s*;|public\s+(?:(?:abstract|final|sealed)\s+)*(?:class|interface|enum|record)\s)/m.test(text);
   const files = await sourceFiles(root);
-  if (files.length > 5e4) throw new Error("\u5DE5\u4F5C\u533A\u6E90\u7801\u6587\u4EF6\u8FC7\u591A\uFF0C\u8BF7\u6253\u5F00\u5177\u4F53\u5DE5\u7A0B\u540E\u91CD\u8BD5");
+  if (files.length > 5e4) throw new Error(t("tooManyFiles"));
   const named = java && identity.names.length ? files.filter((file) => file.endsWith(".java") && identity.names.includes(path2.basename(file, ".java"))) : files;
   const candidates = named.length ? named : files;
   const exact = [];
@@ -3548,22 +4147,22 @@ async function matchDocument(root, text, exactOnly = false) {
   return [...new Set(exactOnly ? exact : exact.length ? exact : semantic.length ? semantic : similar.filter((item) => item.score >= best - 0.02).map((item) => item.path))].sort();
 }
 async function projectRoot(file, workspaceRoot) {
-  let current = path2.dirname(file);
+  let current2 = path2.dirname(file);
   let result;
-  while (inside(workspaceRoot, current)) {
-    if (languageForPath(file) !== "java" && ["tsconfig.json", "jsconfig.json", "package.json"].some((name) => existsSync(path2.join(current, name)))) return current;
-    const buildFile = ["pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"].find((name) => existsSync(path2.join(current, name)));
-    if (buildFile) result = current;
-    if (current === workspaceRoot) break;
-    const parent = path2.dirname(current);
-    if (parent === current) break;
-    current = parent;
+  while (inside(workspaceRoot, current2)) {
+    if (languageForPath(file) !== "java" && ["tsconfig.json", "jsconfig.json", "package.json"].some((name) => existsSync(path2.join(current2, name)))) return current2;
+    const buildFile = ["pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"].find((name) => existsSync(path2.join(current2, name)));
+    if (buildFile) result = current2;
+    if (current2 === workspaceRoot) break;
+    const parent = path2.dirname(current2);
+    if (parent === current2) break;
+    current2 = parent;
   }
   return result ?? workspaceRoot;
 }
 async function documentContext(file, workspace) {
   const canonical = await realpath(file);
-  if (!inside(workspace.root, canonical) || !sourceExtensions.includes(path2.extname(canonical).slice(1))) throw new Error("\u8BF7\u9009\u62E9\u5F53\u524D\u5DE5\u4F5C\u533A\u5185\u7684 Java\u3001Vue \u6216 JS/TS \u6587\u4EF6");
+  if (!inside(workspace.root, canonical) || !sourceExtensions.includes(path2.extname(canonical).slice(1))) throw new Error(t("unsupportedFile"));
   return { uri: pathToFileURL(canonical).href, path: canonical, root: await projectRoot(canonical, workspace.root), workspace };
 }
 
@@ -3641,7 +4240,7 @@ var LanguageServer = class {
   stopped = false;
   semanticLegend;
   start() {
-    if (this.stopped) return Promise.reject(new Error("Java \u8BED\u8A00\u670D\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u91CD\u8BD5"));
+    if (this.stopped) return Promise.reject(new Error(t("javaStopped")));
     return this.ready ??= this.launch();
   }
   async launch() {
@@ -3649,7 +4248,7 @@ var LanguageServer = class {
     await mkdir2(workspace, { recursive: true });
     const plugins = await readdir2(path3.join(this.runtime.server, "plugins"));
     const launcher = plugins.find((file) => /^org\.eclipse\.equinox\.launcher_[^/]+\.jar$/.test(file));
-    if (!launcher) throw new Error("JDT LS \u7F3A\u5C11\u542F\u52A8\u7EC4\u4EF6");
+    if (!launcher) throw new Error(t("jdtlsLauncherMissing"));
     const platform = process.platform === "darwin" ? "mac" : process.platform === "win32" ? "win" : "linux";
     const configNames = process.arch === "arm64" ? [`config_${platform}_arm`, `config_${platform}`] : [`config_${platform}`];
     let template;
@@ -3660,7 +4259,7 @@ var LanguageServer = class {
         break;
       }
     }
-    if (!template) throw new Error("JDT LS \u7F3A\u5C11\u5F53\u524D\u5E73\u53F0\u914D\u7F6E");
+    if (!template) throw new Error(t("jdtlsConfigMissing"));
     const config = path3.join(workspace, "configuration");
     await cp(template, config, { recursive: true, force: false });
     const args = ["-Declipse.application=org.eclipse.jdt.ls.core.id1", "-Dosgi.bundles.defaultStartLevel=4", "-Declipse.product=org.eclipse.jdt.ls.core.product", "-Djava.import.generatesMetadataFilesAtProjectRoot=false", "-Dlog.level=WARNING", "-Dfile.encoding=UTF-8", "-Xmx1G", "--add-modules=ALL-SYSTEM", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED"];
@@ -3668,7 +4267,7 @@ var LanguageServer = class {
     if (this.runtime.lombok) args.push(`-javaagent:${this.runtime.lombok}`);
     else if (lombok) args.push(`-javaagent:${path3.join(this.runtime.server, "plugins", lombok)}`);
     args.push("-jar", path3.join(this.runtime.server, "plugins", launcher), "-configuration", config, "-data", path3.join(workspace, "data"));
-    this.progress("\u6B63\u5728\u542F\u52A8 Java \u5206\u6790\u670D\u52A1\u2026");
+    this.progress(t("javaStarting"));
     const env = { ...process.env };
     delete env.CLIENT_PORT;
     delete env.CLIENT_HOST;
@@ -3705,8 +4304,8 @@ var LanguageServer = class {
     connection.onNotification("language/status", (status) => {
       if (status.type === "ServiceReady") {
         this.resolveInitialized?.();
-        this.progress("Java \u5206\u6790\u5DF2\u5C31\u7EEA");
-      } else this.progress(status.message || "\u6B63\u5728\u5206\u6790 Java \u5DE5\u7A0B\u2026");
+        this.progress(t("javaReady"));
+      } else this.progress(status.message || t("javaAnalyzing"));
     });
     connection.onNotification("$/progress", (params) => {
       const message = params.value?.message ?? params.value?.title;
@@ -3743,7 +4342,7 @@ var LanguageServer = class {
       await connection.sendNotification("workspace/didChangeConfiguration", { settings: { java: this.javaSettings() } });
     } catch (error) {
       this.dispose();
-      throw new Error(`Java \u5206\u6790\u670D\u52A1\u542F\u52A8\u5931\u8D25\uFF1A${error instanceof Error ? error.message : error}`);
+      throw new Error(t("javaStartFailed", { error: error instanceof Error ? error.message : String(error) }));
     } finally {
       clearTimeout(timer);
     }
@@ -3759,10 +4358,10 @@ var LanguageServer = class {
     };
   }
   async request(method, params, signal) {
-    if (!this.connection || this.stopped) throw new Error(`Java \u5206\u6790\u670D\u52A1\u4E0D\u53EF\u7528${this.stderr ? `\uFF1A${this.stderr.slice(-500)}` : ""}`);
+    if (!this.connection || this.stopped) throw new Error(this.stderr ? t("javaUnavailableDetail", { detail: this.stderr.slice(-500) }) : t("javaUnavailable"));
     const cancellation = new import_node.CancellationTokenSource();
     const abort = () => cancellation.cancel();
-    if (signal?.aborted) throw new Error("\u8BF7\u6C42\u5DF2\u53D6\u6D88");
+    if (signal?.aborted) throw new Error(t("requestCancelled"));
     signal?.addEventListener("abort", abort, { once: true });
     try {
       return await this.connection.sendRequest(method, params, cancellation.token);
@@ -3790,7 +4389,7 @@ var LanguageServer = class {
     const params = { textDocument: { uri }, position, ...kind === "references" ? { context: { includeDeclaration: false } } : {} };
     let targets = normalizeLocations(await this.request(`textDocument/${kind}`, params, signal));
     if (!targets.length && this.initialization) {
-      this.progress("\u6B63\u5728\u5B8C\u6210\u5DE5\u7A0B\u5206\u6790\uFF0C\u8BF7\u7A0D\u5019\u2026");
+      this.progress(t("finishingAnalysis"));
       const imported = this.initialization;
       this.initialization = void 0;
       const timeout = new Promise((resolve) => {
@@ -3798,7 +4397,7 @@ var LanguageServer = class {
         timer.unref();
       });
       await Promise.race([imported, timeout]);
-      if (signal?.aborted) throw new Error("\u8BF7\u6C42\u5DF2\u53D6\u6D88");
+      if (signal?.aborted) throw new Error(t("requestCancelled"));
       targets = normalizeLocations(await this.request(`textDocument/${kind}`, params, signal));
     }
     return targets;
@@ -3822,7 +4421,7 @@ var LanguageServer = class {
         signal?.removeEventListener("abort", abort);
         error ? reject(error) : resolve();
       };
-      const abort = () => finish(new Error("\u8BF7\u6C42\u5DF2\u53D6\u6D88"));
+      const abort = () => finish(new Error(t("requestCancelled")));
       const timer = setTimeout(() => finish(), 3e4);
       timer.unref();
       if (signal?.aborted) {
@@ -4005,7 +4604,7 @@ var WebLanguageServer = class {
     const dist = existsSync2(path4.join(moduleDir, "web-runtime")) ? moduleDir : path4.resolve(moduleDir, "../dist");
     const modules = path4.join(dist, "web-runtime/node_modules");
     this.runtimeModules = modules;
-    this.progress("\u6B63\u5728\u542F\u52A8 Vue / TypeScript \u5206\u6790\u670D\u52A1\u2026");
+    this.progress(t("webStarting"));
     const child = spawn2(process.execPath, [path4.join(modules, "@vue/language-server/bin/vue-language-server.js"), "--stdio"], { cwd: this.root, stdio: "pipe" });
     this.child = child;
     child.stderr.on("data", (chunk) => {
@@ -4060,17 +4659,17 @@ var WebLanguageServer = class {
       } catch (error) {
         this.log(`\u6587\u4EF6\u76D1\u542C\u4E0D\u53EF\u7528\uFF1A${error}`);
       }
-      this.progress("Vue / TypeScript \xB7 \u5206\u6790\u5DF2\u5C31\u7EEA");
+      this.progress(t("webReady"));
     } catch (error) {
       this.dispose();
-      throw new Error(`Vue / TS \u5206\u6790\u670D\u52A1\u542F\u52A8\u5931\u8D25\uFF1A${error}`);
+      throw new Error(t("webStartFailed", { error: String(error) }));
     }
   }
   async request(method, params, signal) {
-    if (!this.connection || this.stopped) throw new Error(`Vue / TS \u5206\u6790\u670D\u52A1\u4E0D\u53EF\u7528\uFF1A${this.stderr.slice(-500)}`);
+    if (!this.connection || this.stopped) throw new Error(t("webUnavailable", { detail: this.stderr.slice(-500) }));
     const token = new import_node2.CancellationTokenSource();
     const abort = () => token.cancel();
-    if (signal?.aborted) throw new Error("\u8BF7\u6C42\u5DF2\u53D6\u6D88");
+    if (signal?.aborted) throw new Error(t("requestCancelled"));
     signal?.addEventListener("abort", abort, { once: true });
     try {
       return await this.connection.sendRequest(method, params, token.token);
@@ -4080,7 +4679,7 @@ var WebLanguageServer = class {
     }
   }
   async sync(uri, text) {
-    if (this.stopped) throw new Error("Vue / TS \u5206\u6790\u670D\u52A1\u5DF2\u505C\u6B62\uFF0C\u8BF7\u91CD\u65B0\u8FDE\u63A5");
+    if (this.stopped) throw new Error(t("webStopped"));
     await (this.ready ??= this.launch());
     const action = this.queue.then(async () => {
       const previous = this.documents.get(uri);
@@ -4106,7 +4705,7 @@ var WebLanguageServer = class {
     return targets;
   }
   async virtualText() {
-    throw new Error("\u6B64\u8BED\u8A00\u670D\u52A1\u4EC5\u63D0\u4F9B\u78C1\u76D8\u6E90\u7801\u9884\u89C8");
+    throw new Error(t("diskPreviewOnly"));
   }
   async close(uri) {
     if (this.documents.delete(uri) && !this.stopped) await this.connection?.sendNotification("textDocument/didClose", { textDocument: { uri } });
@@ -4160,7 +4759,7 @@ function describeTarget(target, text, workspaceRoot) {
   const projectSource = !!file && relative !== ".." && !relative.startsWith(`..${path5.sep}`) && !path5.isAbsolute(relative);
   const segments = relative.split(path5.sep);
   const sourceIndex = segments.indexOf("src");
-  const module = projectSource ? sourceIndex > 0 ? segments.slice(0, sourceIndex).join("/") : path5.basename(workspaceRoot) : "\u4F9D\u8D56\u5E93";
+  const module = projectSource ? sourceIndex > 0 ? segments.slice(0, sourceIndex).join("/") : path5.basename(workspaceRoot) : t("libraryModule");
   const symbolName = symbol?.trim() || target.symbol;
   return { ...target, label: projectSource ? relative : target.label, ...symbolName ? { symbol: symbolName } : {}, ...packageName ? { packageName } : {}, module, source: projectSource ? "project" : "library", signature: line.trim(), preview: line.trim() };
 }
@@ -4168,9 +4767,9 @@ function describeVirtualTarget(target) {
   try {
     const segments = new URL(target.uri).pathname.split("/").filter(Boolean).map(decodeURIComponent);
     const name = segments.at(-1) ?? target.label;
-    return { ...target, symbol: name.replace(/\.class$/, ""), packageName: segments.slice(1, -1).join("."), module: segments[0] ?? "\u4F9D\u8D56\u5E93", source: "library" };
+    return { ...target, symbol: name.replace(/\.class$/, ""), packageName: segments.slice(1, -1).join("."), module: segments[0] ?? t("libraryModule"), source: "library" };
   } catch {
-    return { ...target, source: "library", module: "\u4F9D\u8D56\u5E93" };
+    return { ...target, source: "library", module: t("libraryModule") };
   }
 }
 
@@ -4222,17 +4821,17 @@ function changedPaths(output) {
   for (let i = 0; i < fields.length && fields[i]; ) {
     const status = fields[i++];
     const first = fields[i++];
-    if (!first) throw new Error("Git \u6587\u4EF6\u6E05\u5355\u4E0D\u5B8C\u6574");
+    if (!first) throw new Error(t("gitListIncomplete"));
     if (/^[RC]/.test(status)) {
       const afterPath = fields[i++];
-      if (!afterPath) throw new Error("Git \u91CD\u547D\u540D\u8BB0\u5F55\u4E0D\u5B8C\u6574");
+      if (!afterPath) throw new Error(t("gitRenameIncomplete"));
       files.push({ status, beforePath: first, afterPath });
     } else files.push({ status, ...status !== "A" ? { beforePath: first } : {}, ...status !== "D" ? { afterPath: first } : {} });
   }
   return files;
 }
 async function reviewCommit(repository, ref) {
-  if (!ref || ref.length > 200 || /[\0\r\n]/.test(ref) || ref.startsWith("-")) throw new Error("\u63D0\u4EA4\u6807\u8BC6\u65E0\u6548");
+  if (!ref || ref.length > 200 || /[\0\r\n]/.test(ref) || ref.startsWith("-")) throw new Error(t("invalidRevision"));
   const revision = (await git(repository, ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`])).trim();
   const metadata = (await git(repository, ["show", "-s", "--format=%P%n%s%n%aI", revision])).trimEnd().split("\n");
   const parent = metadata[0].split(" ")[0] || void 0;
@@ -4245,7 +4844,7 @@ async function revisionDocument(repository, commit, file, side) {
   if (!revision || !filename) return;
   const contents = await run("git", ["-C", repository, "show", `${revision}:${filename}`], { encoding: "buffer", maxBuffer: 45e4, timeout: 15e3 });
   const buffer = contents.stdout;
-  if (buffer.includes(0)) throw new Error("\u5F53\u524D\u6587\u4EF6\u662F\u4E8C\u8FDB\u5236\u6587\u4EF6\uFF0C\u4E0D\u80FD\u4F5C\u4E3A\u6E90\u7801\u663E\u793A");
+  if (buffer.includes(0)) throw new Error(t("binaryFile"));
   return { repository, revision, path: filename, side, text: buffer.toString("utf8").replace(/\r\n?/g, "\n") };
 }
 function readObjects(repository, objects) {
@@ -4256,7 +4855,7 @@ function readObjects(repository, objects) {
   });
 }
 async function revisionWorkspace(repository, revision, cacheRoot = path6.join(CACHE, "revisions")) {
-  if (!/^[a-f0-9]{40,64}$/.test(revision)) throw new Error("\u5386\u53F2\u5206\u6790\u9700\u8981\u5B8C\u6574\u63D0\u4EA4\u54C8\u5E0C");
+  if (!/^[a-f0-9]{40,64}$/.test(revision)) throw new Error(t("fullHashRequired"));
   const key = createHash3("sha256").update(`${repository}\0${revision}`).digest("hex").slice(0, 32);
   const directory = path6.join(cacheRoot, key);
   const old = snapshots.get(directory);
@@ -4270,10 +4869,10 @@ async function revisionWorkspace(repository, revision, cacheRoot = path6.join(CA
       const [mode, type, object2, size] = line.slice(0, at).trim().split(/\s+/);
       const filename = line.slice(at + 1);
       if (!/^100(?:644|755)$/.test(mode) || type !== "blob" || !sourceFile.test(filename) || ignored.test(filename)) continue;
-      if (!inside(directory, path6.resolve(directory, filename))) throw new Error("\u5386\u53F2\u6E90\u7801\u8DEF\u5F84\u65E0\u6548");
+      if (!inside(directory, path6.resolve(directory, filename))) throw new Error(t("invalidHistoryPath"));
       files.push({ path: filename, object: object2, size: Number(size) });
     }
-    if (files.length > 2e4 || files.reduce((total, file) => total + file.size, 0) > 64 * 1024 * 1024) throw new Error("\u5386\u53F2\u5DE5\u7A0B\u6E90\u7801\u8D85\u8FC7\u5206\u6790\u7F13\u5B58\u4E0A\u9650\uFF0C\u53EF\u7EE7\u7EED\u9605\u8BFB\u8BED\u6CD5\u9AD8\u4EAE");
+    if (files.length > 2e4 || files.reduce((total, file) => total + file.size, 0) > 64 * 1024 * 1024) throw new Error(t("historyTooLarge"));
     const staging = `${directory}.partial-${process.pid}-${Date.now()}`;
     await mkdir3(staging, { recursive: true });
     try {
@@ -4282,7 +4881,7 @@ async function revisionWorkspace(repository, revision, cacheRoot = path6.join(CA
       for (const file of files) {
         const end = contents.indexOf(10, offset);
         const header = contents.subarray(offset, end).toString("ascii");
-        if (end < 0 || header !== `${file.object} blob ${file.size}` || end + 1 + file.size >= contents.length) throw new Error("\u5386\u53F2\u6E90\u7801\u5BF9\u8C61\u8BFB\u53D6\u5931\u8D25");
+        if (end < 0 || header !== `${file.object} blob ${file.size}` || end + 1 + file.size >= contents.length) throw new Error(t("historyObjectFailed"));
         const destination = path6.join(staging, file.path);
         await mkdir3(path6.dirname(destination), { recursive: true });
         await writeFile(destination, contents.subarray(end + 1, end + 1 + file.size));
@@ -4312,14 +4911,14 @@ function registerReview(orca, serverFor) {
   const sessions = /* @__PURE__ */ new Map();
   const stateFor = (caller) => {
     const state = sessions.get(caller.panel.id);
-    if (!state) throw new Error("\u8BF7\u5148\u6253\u5F00\u63D0\u4EA4\u9605\u8BFB");
+    if (!state) throw new Error(t("openReviewFirst"));
     return state;
   };
   const assertCurrent = (state, generation, signal) => {
-    if (state.generation !== generation || signal?.aborted) throw new Error("\u5DF2\u5207\u6362\u6587\u4EF6\uFF0C\u5F53\u524D\u5206\u6790\u5DF2\u53D6\u6D88");
+    if (state.generation !== generation || signal?.aborted) throw new Error(t("reviewStale"));
   };
   const repositoryFor = (state, input) => {
-    if (typeof input !== "string" || !state.repositories.includes(input)) throw new Error("\u8BF7\u9009\u62E9\u5F53\u524D\u5DE5\u4F5C\u533A\u4E2D\u7684 Git \u4ED3\u5E93");
+    if (typeof input !== "string" || !state.repositories.includes(input)) throw new Error(t("chooseRepository"));
     return input;
   };
   orca.panels.handle("review-initialize", async (input, caller) => {
@@ -4340,7 +4939,7 @@ function registerReview(orca, serverFor) {
     const data = input;
     const state = stateFor(caller);
     const repository = repositoryFor(state, data.repository);
-    if (typeof data.revision !== "string") throw new Error("\u8BF7\u9009\u62E9\u63D0\u4EA4");
+    if (typeof data.revision !== "string") throw new Error(t("chooseCommit"));
     const generation = ++state.generation;
     state.commit = void 0;
     state.documents = void 0;
@@ -4354,7 +4953,7 @@ function registerReview(orca, serverFor) {
     const state = stateFor(caller);
     const index = input.index;
     const commit = state.commit;
-    if (!commit || !state.repository || !Number.isInteger(index) || !commit.files[Number(index)]) throw new Error("\u63D0\u4EA4\u6587\u4EF6\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+    if (!commit || !state.repository || !Number.isInteger(index) || !commit.files[Number(index)]) throw new Error(t("commitFilesChanged"));
     const generation = ++state.generation;
     state.documents = void 0;
     const file = commit.files[Number(index)];
@@ -4366,11 +4965,11 @@ function registerReview(orca, serverFor) {
   async function analysis(input, caller) {
     const data = input;
     const state = stateFor(caller);
-    if (data.side !== "before" && data.side !== "after" || data.generation !== state.generation) throw new Error("\u63D0\u4EA4\u4FA7\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u8BD5");
+    if (data.side !== "before" && data.side !== "after" || data.generation !== state.generation) throw new Error(t("sideChanged"));
     const document = state.documents?.[data.side];
-    if (!document) throw new Error("\u6B64\u63D0\u4EA4\u4FA7\u6CA1\u6709\u6E90\u7801");
+    if (!document) throw new Error(t("sideHasNoSource"));
     const generation = state.generation;
-    orca.panels.post("review-progress", { generation, message: `\u6B63\u5728\u5206\u6790 ${document.revision.slice(0, 8)} \u7684\u6E90\u7801\u2026` }, { panel: caller.panel.id });
+    orca.panels.post("review-progress", { generation, message: t("analyzingRevision", { revision: document.revision.slice(0, 8) }) }, { panel: caller.panel.id });
     const root = await revisionWorkspace(document.repository, document.revision);
     assertCurrent(state, generation, caller.signal);
     const context = await documentContext(path7.join(root, document.path), { root, selector: state.workspace.selector });
@@ -4379,26 +4978,26 @@ function registerReview(orca, serverFor) {
     return { state, document, context, server, generation, root };
   }
   orca.panels.handle("review-semantic", async (input, caller) => {
-    const current = await analysis(input, caller);
-    const tokens = await current.server.semanticTokens?.(current.context.uri, current.document.text, caller.signal) ?? [];
-    assertCurrent(current.state, current.generation, caller.signal);
+    const current2 = await analysis(input, caller);
+    const tokens = await current2.server.semanticTokens?.(current2.context.uri, current2.document.text, caller.signal) ?? [];
+    assertCurrent(current2.state, current2.generation, caller.signal);
     return tokens;
   });
   orca.panels.handle("review-definition", async (input, caller) => {
     const position = input.position;
-    if (!position || ![position.line, position.character].every((n) => Number.isInteger(n) && n >= 0)) throw new Error("\u6E90\u7801\u4F4D\u7F6E\u65E0\u6548");
-    const current = await analysis(input, caller);
-    const targets = await current.server.navigate(current.context.uri, current.document.text, position, "definition", caller.signal);
+    if (!position || ![position.line, position.character].every((n) => Number.isInteger(n) && n >= 0)) throw new Error(t("invalidSourcePosition"));
+    const current2 = await analysis(input, caller);
+    const targets = await current2.server.navigate(current2.context.uri, current2.document.text, position, "definition", caller.signal);
     const results = [];
     for (const target of targets.slice(0, 5)) {
       let text;
-      if (target.uri.startsWith("jdt:")) text = await current.server.virtualText(target.uri, caller.signal);
-      else if (target.uri.startsWith("file:") && inside(current.root, fileURLToPath3(target.uri))) text = await readFile4(fileURLToPath3(target.uri), "utf8");
+      if (target.uri.startsWith("jdt:")) text = await current2.server.virtualText(target.uri, caller.signal);
+      else if (target.uri.startsWith("file:") && inside(current2.root, fileURLToPath3(target.uri))) text = await readFile4(fileURLToPath3(target.uri), "utf8");
       else continue;
       if (text.length > 4e5) continue;
-      results.push({ ...sourcePreview(text, target.range, target.uri.startsWith("file:") ? path7.relative(current.root, fileURLToPath3(target.uri)) : target.label), revision: current.document.revision });
+      results.push({ ...sourcePreview(text, target.range, target.uri.startsWith("file:") ? path7.relative(current2.root, fileURLToPath3(target.uri)) : target.label), revision: current2.document.revision });
     }
-    assertCurrent(current.state, current.generation, caller.signal);
+    assertCurrent(current2.state, current2.generation, caller.signal);
     return results;
   });
   orca.panels.handle("review-detach", (_input, caller) => {
@@ -4416,11 +5015,11 @@ function registerReview(orca, serverFor) {
 // src/worker.ts
 var cleanup;
 function object(input) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("\u8BF7\u6C42\u53C2\u6570\u65E0\u6548");
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error(t("invalidRequest"));
   return input;
 }
 function source(input) {
-  if (typeof input !== "string" || input.length > 2 * 1024 * 1024) throw new Error("\u6587\u4EF6\u8FC7\u5927\u6216\u5185\u5BB9\u65E0\u6548");
+  if (typeof input !== "string" || input.length > 2 * 1024 * 1024) throw new Error(t("invalidContent"));
   return input;
 }
 function activate(orca) {
@@ -4458,7 +5057,7 @@ function activate(orca) {
     const root = session.context.root;
     const key = serverKey(session.context);
     const serverProgress = (message) => {
-      for (const [panel, current2] of sessions) if (serverKey(current2.context) === key) postProgress(panel, message);
+      for (const [panel, current3] of sessions) if (serverKey(current3.context) === key) postProgress(panel, message);
     };
     const old = servers.get(key);
     if (old?.server.healthy) {
@@ -4474,10 +5073,10 @@ function activate(orca) {
       });
       resolved = await runtime;
     }
-    const current = servers.get(key);
-    if (current?.server.healthy) {
-      current.lastUsed = Date.now();
-      return current.server;
+    const current2 = servers.get(key);
+    if (current2?.server.healthy) {
+      current2.lastUsed = Date.now();
+      return current2.server;
     }
     if (servers.size >= 3) {
       const oldest = [...servers].sort((a, b) => a[1].lastUsed - b[1].lastUsed)[0];
@@ -4492,7 +5091,7 @@ function activate(orca) {
   }
   function sessionFor(context) {
     const session = sessions.get(context.panel.id);
-    if (!session) throw new Error("\u8BF7\u5148\u8BC6\u522B\u5F53\u524D\u6587\u4EF6\uFF0C\u6216\u70B9\u51FB\u91CD\u65B0\u8FDE\u63A5");
+    if (!session) throw new Error(t("noSession"));
     session.lastUsed = Date.now();
     return session;
   }
@@ -4505,7 +5104,7 @@ function activate(orca) {
     const value = object(range);
     for (const side of ["start", "end"]) {
       const point = object(value[side]);
-      if (!Number.isInteger(point.line) || !Number.isInteger(point.character) || Number(point.line) < 0 || Number(point.character) < 0) throw new Error("\u5BFC\u822A\u4F4D\u7F6E\u65E0\u6548");
+      if (!Number.isInteger(point.line) || !Number.isInteger(point.character) || Number(point.line) < 0 || Number(point.character) < 0) throw new Error(t("invalidNavigationPosition"));
     }
     let scroll;
     if (viewport && typeof viewport === "object") {
@@ -4516,7 +5115,7 @@ function activate(orca) {
   }
   async function openFile(session, target) {
     const file = await realpath3(fileURLToPath4(target.uri));
-    if (!inside(session.context.workspace.root, file)) throw new Error("\u76EE\u6807\u6587\u4EF6\u4E0D\u5728\u5F53\u524D\u5DE5\u4F5C\u533A");
+    if (!inside(session.context.workspace.root, file)) throw new Error(t("targetOutsideWorkspace"));
     const destination = { ...target, navigationId: ++navigationId };
     pending.set(target.uri, destination);
     while (pending.size > 100) pending.delete(pending.keys().next().value);
@@ -4525,24 +5124,25 @@ function activate(orca) {
       if (other.context.uri === target.uri) orca.panels.post("reveal", { uri: target.uri, range: target.range, navigationId: destination.navigationId, ...target.viewport ? { viewport: target.viewport } : {} }, { panel });
     }
   }
+  orca.panels.handle("locale", (input) => ({ locale: setLocale(String(object(input).locale ?? "")) }));
   orca.panels.handle("attach", async (input, caller) => {
     const data = object(input);
     const text = source(data.text);
     const attachVersion = (attachVersions.get(caller.panel.id) ?? 0) + 1;
     attachVersions.set(caller.panel.id, attachVersion);
-    orca.panels.post("progress", { message: "\u6B63\u5728\u8BC6\u522B\u5F53\u524D\u6587\u4EF6\u2026" }, { panel: caller.panel.id });
+    orca.panels.post("progress", { message: t("identifyingFile") }, { panel: caller.panel.id });
     const workspace = await activeWorkspace();
     const candidates = await matchDocument(workspace.root, text, data.readOnly === true);
-    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error("\u6587\u4EF6\u5DF2\u5207\u6362\uFF0C\u5DF2\u53D6\u6D88\u8FC7\u671F\u7684\u6587\u4EF6\u8BC6\u522B");
+    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error(t("staleAttach"));
     sourceChoices.set(caller.panel.id, { workspace, candidates });
     const chosen = typeof data.path === "string" ? data.path : candidates.length === 1 ? candidates[0] : void 0;
     if (!chosen) {
-      if (!candidates.length) throw new Error(data.readOnly === true ? "\u6B64\u53EA\u8BFB\u6E90\u7801\u4E0E\u5DE5\u4F5C\u533A\u7248\u672C\u4E0D\u540C\uFF0C\u8BF7\u4ECE JumpLens \u63D0\u4EA4\u9605\u8BFB\u6253\u5F00\u5386\u53F2\u7248\u672C" : "\u5F53\u524D\u5DE5\u4F5C\u533A\u672A\u627E\u5230\u5BF9\u5E94\u6E90\u7801\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u5B58\u6587\u4EF6\u540E\u91CD\u65B0\u8FDE\u63A5");
+      if (!candidates.length) throw new Error(data.readOnly === true ? t("readOnlyMismatch") : t("sourceNotFound"));
       return { candidates: candidates.map((file) => ({ path: file, label: path8.relative(workspace.root, file) })) };
     }
-    if (!candidates.includes(chosen)) throw new Error("\u6587\u4EF6\u5339\u914D\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+    if (!candidates.includes(chosen)) throw new Error(t("matchChanged"));
     const context = await documentContext(chosen, workspace);
-    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error("\u6587\u4EF6\u5DF2\u5207\u6362\uFF0C\u5DF2\u53D6\u6D88\u8FC7\u671F\u7684\u6587\u4EF6\u8BC6\u522B");
+    if (attachVersions.get(caller.panel.id) !== attachVersion) throw new Error(t("staleAttach"));
     const previous = sessions.get(caller.panel.id);
     const session = { context, text, lastUsed: Date.now() };
     sessions.set(caller.panel.id, session);
@@ -4574,24 +5174,24 @@ function activate(orca) {
     if (buffer) return buffer.text;
     if (target.uri.startsWith("file:")) return readFile5(fileURLToPath4(target.uri), "utf8");
     if (target.uri.startsWith("jdt:")) return (await serverFor(session)).virtualText(target.uri, signal);
-    throw new Error("\u76EE\u6807\u6587\u6863\u7C7B\u578B\u4E0D\u53D7\u652F\u6301");
+    throw new Error(t("unsupportedTarget"));
   }
   orca.panels.handle("preview-source", async (input, caller) => {
     const selected = object(input).path;
     const choices = sourceChoices.get(caller.panel.id);
-    if (typeof selected !== "string" || !choices?.candidates.includes(selected)) throw new Error("\u5F53\u524D\u6587\u4EF6\u5019\u9009\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+    if (typeof selected !== "string" || !choices?.candidates.includes(selected)) throw new Error(t("candidatesChanged"));
     return sourcePreview(await readFile5(selected, "utf8"), { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, path8.relative(choices.workspace.root, selected));
   });
   orca.panels.handle("preview", async (input, caller) => {
     const target = object(input);
     const session = sessionFor(caller);
-    if (!permitted.get(caller.panel.id)?.has(target.uri)) throw new Error("\u9884\u89C8\u76EE\u6807\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u91CD\u65B0\u67E5\u8BE2");
+    if (!permitted.get(caller.panel.id)?.has(target.uri)) throw new Error(t("previewExpired"));
     return sourcePreview(await targetText(session, target, caller.signal), target.range, target.label);
   });
   orca.panels.handle("files", async (input, caller) => {
     const session = sessionFor(caller);
     const query = object(input).query;
-    if (typeof query !== "string" || query.length > 300) throw new Error("\u6587\u4EF6\u641C\u7D22\u6761\u4EF6\u65E0\u6548");
+    if (typeof query !== "string" || query.length > 300) throw new Error(t("invalidFileQuery"));
     const files = await sourceFiles(session.context.workspace.root);
     const range = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
     const targets = searchTargets(files.map((file) => ({ uri: pathToFileURL4(file).href, label: path8.relative(session.context.workspace.root, file), symbol: path8.basename(file), range })), query);
@@ -4622,7 +5222,7 @@ function activate(orca) {
     const text = source(data.text);
     const position = object(data.position);
     const kind = data.kind;
-    if (!["definition", "implementation", "references", "typeDefinition"].includes(kind) || !Number.isInteger(position.line) || !Number.isInteger(position.character) || Number(position.line) < 0 || Number(position.character) < 0) throw new Error("\u8DF3\u8F6C\u4F4D\u7F6E\u65E0\u6548");
+    if (!["definition", "implementation", "references", "typeDefinition"].includes(kind) || !Number.isInteger(position.line) || !Number.isInteger(position.character) || Number(position.line) < 0 || Number(position.character) < 0) throw new Error(t("invalidJumpPosition"));
     session.text = text;
     const server = await serverFor(session);
     const point = { line: Number(position.line), character: Number(position.character) };
@@ -4633,7 +5233,7 @@ function activate(orca) {
       effectiveKind = "references";
       targets = uniqueTargets(await server.navigate(session.context.uri, text, point, "references", caller.signal));
     }
-    if (sessions.get(caller.panel.id) !== session) throw new Error("\u6587\u4EF6\u5DF2\u5207\u6362\uFF0C\u5DF2\u53D6\u6D88\u8FC7\u671F\u7684\u5BFC\u822A\u67E5\u8BE2");
+    if (sessions.get(caller.panel.id) !== session) throw new Error(t("staleNavigation"));
     orca.log(`Java ${kind}\uFF1A${session.context.path}:${Number(position.line) + 1}:${Number(position.character) + 1} -> ${targets.length} \u4E2A\u7ED3\u679C`);
     const allowed = permitted.get(caller.panel.id);
     const texts = /* @__PURE__ */ new Map();
@@ -4651,15 +5251,15 @@ function activate(orca) {
     const data = object(input);
     const session = sessionFor(caller);
     const target = data;
-    if (typeof target.uri !== "string" || !permitted.get(caller.panel.id)?.has(target.uri)) throw new Error("\u76EE\u6807\u4E0D\u5C5E\u4E8E\u672C\u6B21\u5BFC\u822A\u67E5\u8BE2\u7ED3\u679C");
+    if (typeof target.uri !== "string" || !permitted.get(caller.panel.id)?.has(target.uri)) throw new Error(t("targetNotInResults"));
     const range = object(target.range);
     const start = object(range.start);
-    if (!Number.isInteger(start.line) || !Number.isInteger(start.character) || Number(start.line) < 0 || Number(start.character) < 0) throw new Error("\u76EE\u6807\u4F4D\u7F6E\u65E0\u6548");
+    if (!Number.isInteger(start.line) || !Number.isInteger(start.character) || Number(start.line) < 0 || Number(start.character) < 0) throw new Error(t("invalidTargetPosition"));
     if (target.uri.startsWith("jdt:")) {
       const text = await (await serverFor(session)).virtualText(target.uri, caller.signal);
       return { virtual: true, text, uri: target.uri, range: target.range, label: target.label };
     }
-    if (!target.uri.startsWith("file:")) throw new Error("\u5F53\u524D\u76EE\u6807\u6587\u6863\u7C7B\u578B\u4E0D\u53D7\u652F\u6301");
+    if (!target.uri.startsWith("file:")) throw new Error(t("unsupportedCurrentTarget"));
     const file = await realpath3(fileURLToPath4(target.uri));
     if (!inside(session.context.workspace.root, file)) {
       return { virtual: true, text: await readFile5(file, "utf8"), uri: target.uri, range: target.range, label: target.label };
@@ -4676,7 +5276,7 @@ function activate(orca) {
   orca.panels.handle("history-state", (_input, caller) => historyFor(sessionFor(caller)).state);
   orca.panels.handle("history", async (input, caller) => {
     const data = object(input);
-    if (data.direction !== "back" && data.direction !== "forward") throw new Error("\u5BFC\u822A\u65B9\u5411\u65E0\u6548");
+    if (data.direction !== "back" && data.direction !== "forward") throw new Error(t("invalidDirection"));
     const session = sessionFor(caller);
     const history = historyFor(session);
     const destination = history.peek(data.direction);

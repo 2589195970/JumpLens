@@ -4,6 +4,7 @@ import { mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:
 import path from 'node:path';
 import { CACHE, run } from './runtime';
 import { inside } from './project';
+import { t } from './i18n';
 
 export type CommitSummary = { revision: string; subject: string; date: string };
 export type ChangedFile = { status: string; beforePath?: string; afterPath?: string };
@@ -45,10 +46,10 @@ export function changedPaths(output: string): ChangedFile[] {
   for (let i = 0; i < fields.length && fields[i];) {
     const status = fields[i++];
     const first = fields[i++];
-    if (!first) throw new Error('Git 文件清单不完整');
+    if (!first) throw new Error(t('gitListIncomplete'));
     if (/^[RC]/.test(status)) {
       const afterPath = fields[i++];
-      if (!afterPath) throw new Error('Git 重命名记录不完整');
+      if (!afterPath) throw new Error(t('gitRenameIncomplete'));
       files.push({ status, beforePath: first, afterPath });
     } else files.push({ status, ...(status !== 'A' ? { beforePath: first } : {}), ...(status !== 'D' ? { afterPath: first } : {}) });
   }
@@ -56,7 +57,7 @@ export function changedPaths(output: string): ChangedFile[] {
 }
 
 export async function reviewCommit(repository: string, ref: string): Promise<ReviewCommit> {
-  if (!ref || ref.length > 200 || /[\0\r\n]/.test(ref) || ref.startsWith('-')) throw new Error('提交标识无效');
+  if (!ref || ref.length > 200 || /[\0\r\n]/.test(ref) || ref.startsWith('-')) throw new Error(t('invalidRevision'));
   const revision = (await git(repository, ['rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`])).trim();
   const metadata = (await git(repository, ['show', '-s', '--format=%P%n%s%n%aI', revision])).trimEnd().split('\n');
   const parent = metadata[0].split(' ')[0] || undefined;
@@ -72,7 +73,7 @@ export async function revisionDocument(repository: string, commit: ReviewCommit,
   if (!revision || !filename) return;
   const contents = await run('git', ['-C', repository, 'show', `${revision}:${filename}`], { encoding: 'buffer', maxBuffer: 450_000, timeout: 15_000 });
   const buffer = contents.stdout as unknown as Buffer;
-  if (buffer.includes(0)) throw new Error('当前文件是二进制文件，不能作为源码显示');
+  if (buffer.includes(0)) throw new Error(t('binaryFile'));
   // CodeMirror stores LF internally; LSP offsets must use that same document representation.
   return { repository, revision, path: filename, side, text: buffer.toString('utf8').replace(/\r\n?/g, '\n') };
 }
@@ -87,7 +88,7 @@ function readObjects(repository: string, objects: string[]): Promise<Buffer> {
 }
 
 export async function revisionWorkspace(repository: string, revision: string, cacheRoot = path.join(CACHE, 'revisions')): Promise<string> {
-  if (!/^[a-f0-9]{40,64}$/.test(revision)) throw new Error('历史分析需要完整提交哈希');
+  if (!/^[a-f0-9]{40,64}$/.test(revision)) throw new Error(t('fullHashRequired'));
   const key = createHash('sha256').update(`${repository}\0${revision}`).digest('hex').slice(0, 32);
   const directory = path.join(cacheRoot, key);
   const old = snapshots.get(directory);
@@ -101,10 +102,10 @@ export async function revisionWorkspace(repository: string, revision: string, ca
       const [mode, type, object, size] = line.slice(0, at).trim().split(/\s+/);
       const filename = line.slice(at + 1);
       if (!/^100(?:644|755)$/.test(mode) || type !== 'blob' || !sourceFile.test(filename) || ignored.test(filename)) continue;
-      if (!inside(directory, path.resolve(directory, filename))) throw new Error('历史源码路径无效');
+      if (!inside(directory, path.resolve(directory, filename))) throw new Error(t('invalidHistoryPath'));
       files.push({ path: filename, object, size: Number(size) });
     }
-    if (files.length > 20_000 || files.reduce((total, file) => total + file.size, 0) > 64 * 1024 * 1024) throw new Error('历史工程源码超过分析缓存上限，可继续阅读语法高亮');
+    if (files.length > 20_000 || files.reduce((total, file) => total + file.size, 0) > 64 * 1024 * 1024) throw new Error(t('historyTooLarge'));
     const staging = `${directory}.partial-${process.pid}-${Date.now()}`;
     await mkdir(staging, { recursive: true });
     try {
@@ -113,7 +114,7 @@ export async function revisionWorkspace(repository: string, revision: string, ca
       for (const file of files) {
         const end = contents.indexOf(10, offset);
         const header = contents.subarray(offset, end).toString('ascii');
-        if (end < 0 || header !== `${file.object} blob ${file.size}` || end + 1 + file.size >= contents.length) throw new Error('历史源码对象读取失败');
+        if (end < 0 || header !== `${file.object} blob ${file.size}` || end + 1 + file.size >= contents.length) throw new Error(t('historyObjectFailed'));
         const destination = path.join(staging, file.path);
         await mkdir(path.dirname(destination), { recursive: true });
         await writeFile(destination, contents.subarray(end + 1, end + 1 + file.size));

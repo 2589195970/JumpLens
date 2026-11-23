@@ -59,6 +59,10 @@ Vue/TS 语言服务随插件提供，读取工程现有的 `tsconfig.json` / `js
 
 界面边框、工具栏与次要文字使用 Orca 注入的主题变量，代码区域使用所选 One Dark／IDEA Dark 调色板。符号类别及颜色集中在 `src/semantic.ts` 和 `src/palette.ts`，构建时生成原生主题与 CodeMirror 样式，主编辑器、候选预览和提交阅读使用同一套分类。主题切换保留文档、光标与查询状态。
 
+## 界面语言
+
+工具栏、状态栏、候选窗口、提交阅读和语言服务的提示跟随 Orca 的界面语言（设置 → 外观 → 语言）：中文、English、한국어。其他语言显示英文；Orca 未提供语言时保持中文。文案集中在 `src/i18n.ts`，新增文案时三种语言一起补齐，缺少翻译会在类型检查时报错。插件清单中的名称和设置项由 Orca 直接显示，保持中文。
+
 ## 环境与设置
 
 首次分析会从 Eclipse 官方下载 JDT LS 1.63.0，从 Eclipse Adoptium 下载独立 Java 25 运行环境，并准备 Lombok 1.18.42。下载包含 SHA-256 校验，文件缓存在 `~/.cache/orca-java-navigation`。JDT LS 的工程元数据与索引也存放在缓存中。

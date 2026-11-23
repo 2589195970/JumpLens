@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { run } from './runtime';
 import type { DocumentContext, Workspace } from './types';
 import { languageForPath, sourceExtensions } from './languages';
+import { t } from './i18n';
 
 function bundled(...parts: string[]): string | undefined {
   const marker = '.app/Contents/';
@@ -19,21 +20,21 @@ const RG = bundled('ripgrep', `${process.platform}-${process.arch}`, 'rg') ?? 'r
 export async function activeWorkspace(): Promise<Workspace> {
   const { stdout } = await run(CLI, ['worktree', 'ps', '--limit', '10000', '--json'], { timeout: 12_000, maxBuffer: 16 * 1024 * 1024 });
   const response = JSON.parse(stdout);
-  if (!response.ok) throw new Error(response.error?.message ?? '无法读取 Orca 工作区');
+  if (!response.ok) throw new Error(response.error?.message ?? t('workspaceUnreadable'));
   const active = response.result.worktrees.filter((row: { isActive: boolean }) => row.isActive);
-  if (active.length !== 1) throw new Error('请先在 Orca 中选择当前工程的工作区');
+  if (active.length !== 1) throw new Error(t('selectWorkspace'));
   const row = active[0];
-  if ((row.hostId && row.hostId !== 'local') || row.address?.environment !== 'local') throw new Error('代码导航目前支持本机工作区');
-  if (!row.address?.worktree) throw new Error('当前工作区地址不可用');
+  if ((row.hostId && row.hostId !== 'local') || row.address?.environment !== 'local') throw new Error(t('localOnly'));
+  if (!row.address?.worktree) throw new Error(t('workspaceAddressUnavailable'));
   return { root: await realpath(row.path), selector: row.address.worktree };
 }
 
 export async function workspaceBySelector(selector: string): Promise<Workspace> {
-  if (!selector || selector.length > 2000 || selector.includes('\0')) throw new Error('工作区标识无效');
+  if (!selector || selector.length > 2000 || selector.includes('\0')) throw new Error(t('invalidWorkspaceId'));
   const { stdout } = await run(CLI, ['worktree', 'show', '--worktree', selector, '--json'], { timeout: 12_000, maxBuffer: 1024 * 1024 });
   const response = JSON.parse(stdout);
   const row = response.result?.worktree;
-  if (!response.ok || !row || row.hostId && row.hostId !== 'local' || row.address?.environment !== 'local') throw new Error('提交阅读的本机工作区不可用');
+  if (!response.ok || !row || row.hostId && row.hostId !== 'local' || row.address?.environment !== 'local') throw new Error(t('reviewWorkspaceUnavailable'));
   return { root: await realpath(row.path), selector: row.address.worktree };
 }
 
@@ -65,7 +66,7 @@ export async function matchDocument(root: string, text: string, exactOnly = fals
   const identity = sourceIdentity(text);
   const java = /^\s*(?:package\s+[\w.]+\s*;|import\s+(?:static\s+)?[\w.*]+\s*;|public\s+(?:(?:abstract|final|sealed)\s+)*(?:class|interface|enum|record)\s)/m.test(text);
   const files = await sourceFiles(root);
-  if (files.length > 50_000) throw new Error('工作区源码文件过多，请打开具体工程后重试');
+  if (files.length > 50_000) throw new Error(t('tooManyFiles'));
   const named = java && identity.names.length ? files.filter((file) => file.endsWith('.java') && identity.names.includes(path.basename(file, '.java'))) : files;
   const candidates = named.length ? named : files;
   const exact: string[] = [];
@@ -110,6 +111,6 @@ export async function projectRoot(file: string, workspaceRoot: string): Promise<
 
 export async function documentContext(file: string, workspace: Workspace): Promise<DocumentContext> {
   const canonical = await realpath(file);
-  if (!inside(workspace.root, canonical) || !sourceExtensions.includes(path.extname(canonical).slice(1))) throw new Error('请选择当前工作区内的 Java、Vue 或 JS/TS 文件');
+  if (!inside(workspace.root, canonical) || !sourceExtensions.includes(path.extname(canonical).slice(1))) throw new Error(t('unsupportedFile'));
   return { uri: pathToFileURL(canonical).href, path: canonical, root: await projectRoot(canonical, workspace.root), workspace };
 }

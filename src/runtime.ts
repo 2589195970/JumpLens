@@ -8,6 +8,7 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 import type { Progress, Settings } from './types';
+import { t } from './i18n';
 
 export const run = promisify(execFile);
 export const CACHE = path.join(homedir(), '.cache', 'orca-java-navigation');
@@ -22,23 +23,23 @@ async function exists(file: string): Promise<boolean> {
 
 async function download(url: string, destination: string, sha256: string, progress: Progress): Promise<void> {
   const response = await fetch(url, { signal: AbortSignal.timeout(600_000) });
-  if (!response.ok || !response.body) throw new Error(`下载失败（HTTP ${response.status}）：${url}`);
+  if (!response.ok || !response.body) throw new Error(t('downloadFailed', { status: response.status, url }));
   const size = Number(response.headers.get('content-length'));
   const hash = createHash('sha256');
   let received = 0;
   let lastUpdate = 0;
   const meter = new Transform({ transform(chunk, _encoding, callback) {
     received += chunk.length;
-    if (received > 600 * 1024 * 1024) return callback(new Error('下载文件超出大小限制'));
+    if (received > 600 * 1024 * 1024) return callback(new Error(t('downloadTooLarge')));
     hash.update(chunk);
     if (Date.now() - lastUpdate > 1000) {
       lastUpdate = Date.now();
-      progress(`正在下载运行组件：${Math.round(received / 1024 / 1024)} MB${size ? ` / ${Math.round(size / 1024 / 1024)} MB` : ''}`);
+      progress(size ? t('downloadingWithTotal', { received: Math.round(received / 1024 / 1024), total: Math.round(size / 1024 / 1024) }) : t('downloading', { received: Math.round(received / 1024 / 1024) }));
     }
     callback(null, chunk);
   }});
   await pipeline(Readable.fromWeb(response.body as never), meter, createWriteStream(destination, { flags: 'wx' }));
-  if (hash.digest('hex') !== sha256.toLowerCase()) throw new Error('下载校验失败，请重试');
+  if (hash.digest('hex') !== sha256.toLowerCase()) throw new Error(t('checksumFailed'));
 }
 
 async function extract(url: string, checksum: string, destination: string, progress: Progress): Promise<void> {
@@ -48,7 +49,7 @@ async function extract(url: string, checksum: string, destination: string, progr
   await mkdir(staging, { recursive: true });
   try {
     await download(url, archive, checksum, progress);
-    progress('校验通过，正在解压运行组件…');
+    progress(t('extracting'));
     await run('tar', ['-xzf', archive, '-C', staging], { timeout: 120_000 });
     try { await rename(staging, destination); }
     catch (error) { if (!await exists(destination)) throw error; }
@@ -83,7 +84,7 @@ async function validJava(file: string): Promise<boolean> {
 async function ensureJava(settings: Settings, progress: Progress): Promise<string> {
   if (settings.javaHome) {
     const java = await findJava(settings.javaHome);
-    if (!java || !await validJava(java)) throw new Error('语言服务器 JDK 需要 Java 25 或更高版本，请检查插件设置');
+    if (!java || !await validJava(java)) throw new Error(t('javaHomeInvalid'));
     return java;
   }
   const cached = path.join(CACHE, 'jdk-25');
@@ -101,16 +102,16 @@ async function ensureJava(settings: Settings, progress: Progress): Promise<strin
   for (const java of candidates) if (java && await validJava(java)) return java;
   const os = process.platform === 'darwin' ? 'mac' : process.platform === 'linux' ? 'linux' : null;
   const architecture = process.arch === 'arm64' ? 'aarch64' : process.arch === 'x64' ? 'x64' : null;
-  if (!os || !architecture) throw new Error('请在插件设置中指定 Java 25 的安装目录');
-  progress('首次使用：准备 Java 语言服务运行环境…');
+  if (!os || !architecture) throw new Error(t('platformUnsupported'));
+  progress(t('preparingJava'));
   const response = await fetch(`https://api.adoptium.net/v3/assets/latest/25/hotspot?architecture=${architecture}&image_type=jdk&os=${os}&vendor=eclipse`, { signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`无法读取 Java 运行环境信息（HTTP ${response.status}）`);
+  if (!response.ok) throw new Error(t('javaMetadataFailed', { status: response.status }));
   const assets = await response.json() as { binary: { package: { link: string; checksum: string } } }[];
   const pkg = assets[0]?.binary.package;
-  if (!pkg || !pkg.link.startsWith('https://github.com/adoptium/') || !/^[a-f\d]{64}$/i.test(pkg.checksum)) throw new Error('Java 运行环境下载信息无效');
+  if (!pkg || !pkg.link.startsWith('https://github.com/adoptium/') || !/^[a-f\d]{64}$/i.test(pkg.checksum)) throw new Error(t('javaMetadataInvalid'));
   await extract(pkg.link, pkg.checksum, cached, progress);
   const java = await findJava(cached);
-  if (!java || !await validJava(java)) throw new Error('Java 运行环境安装失败');
+  if (!java || !await validJava(java)) throw new Error(t('javaInstallFailed'));
   return java;
 }
 
@@ -118,12 +119,12 @@ export async function ensureRuntime(settings: Settings = {}, progress: Progress 
   const java = await ensureJava(settings, progress);
   const server = settings.languageServerHome || path.join(CACHE, `jdtls-${JDT_VERSION}`);
   if (!await exists(path.join(server, 'plugins'))) {
-    if (settings.languageServerHome) throw new Error('JDT LS 目录中缺少 plugins，请检查插件设置');
-    progress('首次使用：准备 Java 语言服务器…');
+    if (settings.languageServerHome) throw new Error(t('jdtlsPluginsMissing'));
+    progress(t('preparingJdtls'));
     const response = await fetch(`${JDT_URL}.sha256`, { signal: AbortSignal.timeout(30_000) });
-    if (!response.ok) throw new Error('无法读取 JDT LS 校验信息');
+    if (!response.ok) throw new Error(t('jdtlsChecksumUnavailable'));
     const checksum = (await response.text()).match(/\b[a-f\d]{64}\b/i)?.[0];
-    if (!checksum) throw new Error('JDT LS 校验信息无效');
+    if (!checksum) throw new Error(t('jdtlsChecksumInvalid'));
     await extract(JDT_URL, checksum, server, progress);
   }
   let projectJavaHome = settings.projectJavaHome;
@@ -139,18 +140,18 @@ export async function ensureRuntime(settings: Settings = {}, progress: Progress 
       const version = await run(path.join(projectJavaHome, 'bin/java'), ['-version'], { timeout: 10_000 });
       major = `${version.stderr}${version.stdout}`.match(/version "(1\.8|\d+)/)?.[1];
     }
-    if (!major) throw new Error('无法识别项目 JDK 版本，请检查插件设置中的项目 JDK 目录');
+    if (!major) throw new Error(t('projectJdkUnknown'));
     projectJavaName = `JavaSE-${major}`;
   }
   const lombok = path.join(CACHE, 'lombok-1.18.42.jar');
   if (!await exists(lombok)) {
-    progress('正在准备 Lombok 分析支持…');
+    progress(t('preparingLombok'));
     const temporary = `${lombok}.${randomUUID()}.part`;
     try {
       await download('https://repo.maven.apache.org/maven2/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar', temporary, '3488a4e9994c26596baaceebee58cad36a50e3bdaec5be72b5834d3c3b560306', progress);
       await rename(temporary, lombok);
     } finally { await rm(temporary, { force: true }); }
   }
-  progress('Java 运行环境已就绪');
+  progress(t('javaRuntimeReady'));
   return { java, server, projectJavaHome, projectJavaName, lombok };
 }

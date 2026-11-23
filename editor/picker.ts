@@ -4,6 +4,7 @@ import { codeEditor, languageForPath } from './language';
 import { icon } from './icons';
 import { matchScore } from '../src/candidates';
 import type { SourcePreview } from '../src/types';
+import { t } from '../src/i18n';
 
 export type PickerItem = {
   id: string;
@@ -37,7 +38,7 @@ export class TargetPicker {
   private count = node('span', 'java-picker-count');
   private progress = node('div', 'java-picker-progress');
   private previewHost = node('div', 'java-picker-code');
-  private previewPath = node('div', 'java-picker-preview-path', '选择候选以预览源码');
+  private previewPath = node('div', 'java-picker-preview-path', t('choosePreview'));
   private previewView?: EditorView;
   private items: PickerItem[] = [];
   private selected = -1;
@@ -58,34 +59,34 @@ export class TargetPicker {
     heading.append(icon('search'), this.input, node('span', 'java-picker-mode', options.title), this.count);
     const close = node('button', 'java-picker-close');
     close.append(icon('close'));
-    close.title = '关闭（Esc）';
-    close.setAttribute('aria-label', '关闭候选选择');
+    close.title = t('closeEsc');
+    close.setAttribute('aria-label', t('closePicker'));
     close.addEventListener('click', () => this.close());
     heading.append(close);
-    this.input.placeholder = options.load ? '搜索文件名或路径…' : '筛选名称、包名或路径…';
+    this.input.placeholder = options.load ? t('searchFiles') : t('filterCandidates');
     this.input.spellcheck = false;
     this.input.autocomplete = 'off';
-    this.input.setAttribute('aria-label', '筛选导航候选');
+    this.input.setAttribute('aria-label', t('filterLabel'));
     this.input.setAttribute('role', 'combobox');
     this.input.setAttribute('aria-autocomplete', 'list');
     this.input.setAttribute('aria-expanded', 'true');
     this.input.setAttribute('aria-controls', 'java-picker-candidates');
     this.list.id = 'java-picker-candidates';
     this.list.setAttribute('role', 'listbox');
-    this.list.setAttribute('aria-label', '导航候选');
+    this.list.setAttribute('aria-label', t('candidatesLabel'));
     const body = node('div', 'java-picker-body');
     const preview = node('section', 'java-picker-preview');
-    preview.setAttribute('aria-label', '候选代码预览');
+    preview.setAttribute('aria-label', t('candidatePreview'));
     const previewHeader = node('div', 'java-picker-preview-header');
-    previewHeader.append(this.previewPath, node('span', 'readonly-label', '只读'));
+    previewHeader.append(this.previewPath, node('span', 'readonly-label', t('readOnly')));
     preview.append(previewHeader, this.previewHost);
     body.append(this.list, preview);
     const footer = node('footer', 'java-picker-footer');
     const keys = node('div', 'java-picker-keys');
-    for (const [key, label] of [['↑↓', '选择'], ['↵', '打开'], ['esc', '关闭']]) {
+    for (const [key, label] of [['↑↓', t('keySelect')], ['↵', t('keyOpen')], ['esc', t('keyClose')]]) {
       const hint = node('span', ''); hint.append(node('kbd', '', key), document.createTextNode(label)); keys.append(hint);
     }
-    footer.append(keys, node('span', 'java-picker-footer-hint', '输入路径可区分同名文件'));
+    footer.append(keys, node('span', 'java-picker-footer-hint', t('pickerHint')));
     dialog.append(heading, this.progress, body, footer);
     this.overlay.append(dialog);
     for (const child of Array.from(document.body.children)) {
@@ -117,13 +118,13 @@ export class TargetPicker {
     this.queryRequest?.abort();
     const request = new AbortController();
     this.queryRequest = request;
-    this.count.textContent = '正在搜索…';
+    this.count.textContent = t('searching');
     this.progress.classList.add('busy');
     this.list.setAttribute('aria-busy', 'true');
     try {
       const result = await this.options.load!(this.input.value, request.signal);
       if (!request.signal.aborted && !this.closed) this.render(result.items, result.total);
-    } catch (error) { if (!request.signal.aborted && !this.closed) { this.count.textContent = '搜索失败'; this.options.onError(error); } }
+    } catch (error) { if (!request.signal.aborted && !this.closed) { this.count.textContent = t('searchFailed'); this.options.onError(error); } }
     finally { if (this.queryRequest === request) { this.progress.classList.remove('busy'); this.list.setAttribute('aria-busy', 'false'); } }
   }
 
@@ -133,7 +134,7 @@ export class TargetPicker {
     this.list.replaceChildren();
     this.rowElements = [];
     this.count.textContent = items.length < total ? `${items.length} / ${total}` : `${total}`;
-    this.count.title = items.length < total ? '继续输入可缩小范围' : `${total} 个候选`;
+    this.count.title = items.length < total ? t('narrowHint') : t('candidateCount', { count: total });
     let group: string | undefined;
     for (const [index, item] of items.entries()) {
       if (item.group && item.group !== group) { this.list.append(node('div', 'java-picker-group', item.group)); group = item.group; }
@@ -160,10 +161,10 @@ export class TargetPicker {
     if (!items.length) {
       this.selected = -1;
       this.input.removeAttribute('aria-activedescendant');
-      this.list.append(node('p', 'java-picker-empty', '没有匹配的候选，请修改筛选条件'));
+      this.list.append(node('p', 'java-picker-empty', t('noMatches')));
       this.previewRequest?.abort();
       this.previewView?.destroy(); this.previewView = undefined;
-      this.previewPath.textContent = '没有可预览的候选';
+      this.previewPath.textContent = t('nothingToPreview');
       return;
     }
     const preserved = items.findIndex((item) => item.id === previous);
@@ -187,7 +188,7 @@ export class TargetPicker {
     this.previewRequest?.abort();
     const request = new AbortController();
     this.previewRequest = request;
-    this.previewPath.textContent = '正在加载源码预览…';
+    this.previewPath.textContent = t('loadingPreview');
     try {
       const source = await item.preview(request.signal);
       if (request.signal.aborted || this.closed || this.items[this.selected]?.id !== item.id) return;
@@ -196,7 +197,7 @@ export class TargetPicker {
       const previewDoc = EditorState.create({ doc: source.text }).doc;
       const lineNumber = Math.max(1, Math.min(previewDoc.lines, source.range.start.line + 1));
       const targetLine = previewDoc.line(lineNumber);
-      const state = EditorState.create({ doc: previewDoc, extensions: [lineNumbers({ formatNumber: (line) => String(line + source.firstLine) }), codeEditor(languageForPath(source.path)), EditorView.decorations.of(Decoration.set([Decoration.line({ class: 'java-preview-target' }).range(targetLine.from)])), EditorState.readOnly.of(true), EditorView.editable.of(false), EditorView.contentAttributes.of({ tabindex: '0', 'aria-label': '候选只读源码' })] });
+      const state = EditorState.create({ doc: previewDoc, extensions: [lineNumbers({ formatNumber: (line) => String(line + source.firstLine) }), codeEditor(languageForPath(source.path)), EditorView.decorations.of(Decoration.set([Decoration.line({ class: 'java-preview-target' }).range(targetLine.from)])), EditorState.readOnly.of(true), EditorView.editable.of(false), EditorView.contentAttributes.of({ tabindex: '0', 'aria-label': t('candidateSource') })] });
       if (this.previewView) this.previewView.setState(state);
       else this.previewView = new EditorView({ parent: this.previewHost, state });
       const point = source.range.start;
@@ -204,7 +205,7 @@ export class TargetPicker {
       const offset = line.from + Math.min(line.length, point.character);
       this.previewView.dispatch({ selection: { anchor: offset }, effects: EditorView.scrollIntoView(offset, { y: 'center' }) });
     } catch (error) {
-      if (!request.signal.aborted && !this.closed) this.previewPath.textContent = `无法预览：${error instanceof Error ? error.message : error}`;
+      if (!request.signal.aborted && !this.closed) this.previewPath.textContent = t('previewFailed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 

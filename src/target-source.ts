@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Target } from './types';
+import { t } from './i18n';
 
 export function describeTarget(target: Target, text: string, workspaceRoot: string): Target {
   const lines = text.split(/\r?\n/);
@@ -12,7 +13,7 @@ export function describeTarget(target: Target, text: string, workspaceRoot: stri
   const projectSource = !!file && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
   const segments = relative.split(path.sep);
   const sourceIndex = segments.indexOf('src');
-  const module = projectSource ? (sourceIndex > 0 ? segments.slice(0, sourceIndex).join('/') : path.basename(workspaceRoot)) : '依赖库';
+  const module = projectSource ? (sourceIndex > 0 ? segments.slice(0, sourceIndex).join('/') : path.basename(workspaceRoot)) : t('libraryModule');
   const symbolName = symbol?.trim() || target.symbol;
   return { ...target, label: projectSource ? relative : target.label, ...(symbolName ? { symbol: symbolName } : {}), ...(packageName ? { packageName } : {}), module, source: projectSource ? 'project' : 'library', signature: line.trim(), preview: line.trim() };
 }
@@ -21,6 +22,6 @@ export function describeVirtualTarget(target: Target): Target {
   try {
     const segments = new URL(target.uri).pathname.split('/').filter(Boolean).map(decodeURIComponent);
     const name = segments.at(-1) ?? target.label;
-    return { ...target, symbol: name.replace(/\.class$/, ''), packageName: segments.slice(1, -1).join('.'), module: segments[0] ?? '依赖库', source: 'library' };
-  } catch { return { ...target, source: 'library', module: '依赖库' }; }
+    return { ...target, symbol: name.replace(/\.class$/, ''), packageName: segments.slice(1, -1).join('.'), module: segments[0] ?? t('libraryModule'), source: 'library' };
+  } catch { return { ...target, source: 'library', module: t('libraryModule') }; }
 }
